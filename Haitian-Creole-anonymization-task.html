@@ -1,0 +1,713 @@
+<p><style type="text/css">
+<!-- 
+span.correct { background-color: #FFFFFF; }
+span.highlight  { background-color: yellow; }
+span.tmp_highlight  { background-color: lightgreen; }
+span.highlight_for_deletion  { background-color: red; }
+A:link {text-decoration: none; color: black;}
+A:visited {text-decoration: none; color: black;}
+A:active {text-decoration: none; color: black;}
+A:hover {text-decoration: none; color: black;}
+//-->
+</style>
+<link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css" /></p>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script> <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>     <script type="text/Javascript">
+
+
+var sentences = [ 
+	"My name is Julien Dorsiner. I am a construction worker and I have four children. Please call me at that number 011-509-36981374.",    
+	"A yard where there are people aren't doing well. They don't have anything to sleep on and they're all in bad shape. The people who are distributing aid haven't been by to see them. My name is Jean Wusbin.", 
+	"Thank you Do the specialists have not yet any ideas on how a person will be able to construct?", 
+	"I lost a kid on Tuesday, the day that the earthquake occured. Her name is Medjine Jean-Paul, she is 8 years old and she has lived at Delmas 32. I am her father.",     
+	"Good Evening, I am a young 24 years old lady, and I am 3 months pregnant. Can you help me find a clinic to follow up on my pregnancy and to provide me some help. I am a 2nd year nursing student and I live in La plaine ... (I think it's Duvivier, but the word is missing)",   
+	"4636: Information Minister Laseg asks all users of 4636 about their account",
+	"My name is Bergomi Dujour. I work as an Interpreter. I need a job. Please listen to me.",   
+	"They say that there will be an aftershock this week-end is that true?",   
+	"Do we really have a governent?", 
+	"If someone is living without a dime, what can he do to protect his health? Thank you much. Aime J Wilson",
+]; 
+
+var translations = [ 
+	"Mwen rele julien dorsiner mwen se yon b√≤s mason kay mwen kraze mwen gen kat pitit numero mwen se 36981374",    
+	"on lakou kote yo pap viv byen yo pagen an yen pou yo domi yotout nan move etat . Moune kap separe &egrave;d yo pajanm pase w&egrave; yo. Nom pam se Jean Wusbin F&egrave; mesa", 
+	"M&egrave;si eske espesyalis pako gen ide pou si yon moun ta vle konstwi?", 
+	"Mwen gen you timoun ki p&egrave;di madi jou tranbleman de t&egrave; a pase a.timoun sa a,rele medjine jean-paul,li gen 8 ane se nan delma 32 li te rete.mwen se papa ti",     
+	"Bonswa mwen se yon j&egrave;n fi 24 an m ansent 3mwa eske nouka edem jwenn lopital poum swiv &egrave;d alimant&egrave; mse yon etidyan 2 an syans enfimy&egrave; m abite lapl&egrave;n diviv",   
+	"4636: Minis enfomasyon Laseg mande tout itilizat&egrave; 4636 yo pou kont",
+	"MY NAME IS BERGOMI DUJOUR,MY FUNCTION IS:INTERPRET,IT'S FOR THIS I HAVE NEED A JOB.PLEASE LISTEN ME.",   
+	"Yo di ap gen replik nan wikend sa a &egrave;ske se vre?",   
+	"Eske gen gouvenman nan peyia vre?", 
+	"ON MOUN AP VIV SAN YON SANTI M AK KISA LAP POTEJE SANTE L? MESI BIEN_AIME J. WILSON",
+]; 
+
+
+var translations = ["${source_1}", "${source_2}", "${source_3}", "${source_4}", "${source_5}", "${source_6}", "${source_7}", "${source_8}", "${source_9}", "${source_10}"]; 
+
+var sentences = ["${translation_1}", "${translation_2}", "${translation_3}", "${translation_4}", "${translation_5}", "${translation_6}", "${translation_7}", "${translation_8}", "${translation_9}", "${translation_10}"]; 
+
+
+
+
+var words = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var highlights = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var tmp_highlights = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var num_highlights = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+var previously_clicked_word = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
+var spans = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var just_clicked = [];
+
+var translation_words = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var translation_alignment_index = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+
+var steps = [ 'anonymize_english', 'anonymize_haitian_creole' ];
+
+
+var tab_names = new Array();
+tab_names['anonymize_english'] = 'Step 1: Anonymize translations of SMS messages';
+tab_names['anonymize_haitian_creole'] = 'Step 2: Find the corresponding Haitian Creole words';
+
+var highlighting_modes = new Array();
+highlighting_modes['anonymize_english'] = 'word';
+highlighting_modes['anonymize_haitian_creole'] = 'word';
+
+var descriptions = new Array();
+descriptions['anonymize_english'] = '<p><b>Instructions:</b> Please click on all of the words that should be anonymized.  You should click on names, phone numbers, e-mail addresses, and IM/Twitter/Facebook/skype handles, and any other identifier that would allow someone to directly identify and/or contact an individual.  You do not need to anonymize physical addresses.  After you click on a word, select what type it is from the pulldown menu that appears. </p>';
+descriptions['anonymize_haitian_creole'] = '<p><b>Instructions:</b> The English words that you highlighted in Step 1 are displayed below.  Please click on the corresponding Haitian Creole words.  You do not need to be able to speak the Haitian Creole to complete this part of the task - just look for the words that are spelled similarly to the names and numbers that you selected.  </p>';
+
+
+/**
+ * Initalizes the arrays that store the space-delimited words, 
+ * and the boolean arrays that indicate what words were marked
+ * as highlights.
+ */
+function initalizeArrays() { 
+	var initial_highlights = "";
+	for(var i = 0; i < sentences.length; i++) {
+		words[i] = sentences[i].split(/\s/);
+		highlights[i] = initalizeArray(words[i].length, false);
+		tmp_highlights[i] = initalizeArray(words[i].length, false);
+		num_highlights[i] = 0;
+		spans[i] = initalizeArray(words[i].length, -1);
+		previously_clicked_word[i] = -1;
+		just_clicked[i] = false;
+
+		translation_words[i] = translations[i].split(/\s/);
+		translation_alignment_index[i] = initalizeArray(translations[i].length, -1);
+	}
+}
+
+
+/**
+ * Initializes an array with the specified value to be the specified length.
+ */
+function initalizeArray(length, value) {
+	var array = new Array(length);
+	for (i = 0; i < array.length; i++) {
+		array[i] = value;
+	}
+	return array;
+}
+
+
+/**
+ * Write the tabs by iterating through the steps, 
+ * and naming them according to the tab_names.
+ */
+function writeTabs() {
+	document.write('<div id="tabs">');
+	document.write('<ul>');
+	for(var i = 0; i < steps.length; i++) {
+        	document.write('<li><a href="#' + steps[i] + '">');
+		document.write('<span>' + tab_names[steps[i]] + '</span>');
+		document.write('</a></li>');
+	}
+	document.write('</ul>');
+
+	for(var i = 0; i < steps.length; i++) {
+        	document.write('<div id="' + steps[i] + '"> ');
+		document.write('</div>');
+	}
+	document.write('</div>');
+
+	for(var i = 0; i < steps.length; i++) {
+		document.getElementById(steps[i]).innerHTML = writeTab(steps[i]);
+	}
+
+	for(var i = 0; i < steps.length; i++) {
+		hideCorrectionsTable(steps[i]);
+	}
+}
+
+function updateTab(step) {
+	document.getElementById(step).innerHTML = writeTab(step);
+	hideCorrectionsTable(step);
+}
+
+
+/**
+ * Write the sentences and the correction table.
+ */
+function writeTab(step) {
+	if(step == 'anonymize_english') {
+		initalizeArrays();
+		tab_text = descriptions[step] + '<hr>';
+		for(i = 0; i < sentences.length; i++) {
+			tab_text += '<p>';
+			tab_text += writeSentence(step, i);
+			tab_text += writeCorrectionsTable(step, i);
+			tab_text += '</p>';
+		}
+		return tab_text;
+	} else {
+		initalizeArrays();
+		tab_text = descriptions[step] + '<hr>';
+		for(i = 0; i < sentences.length; i++) {
+			tab_text += '<p>';
+			tab_text += writeAlignmentTable(step, i);
+			tab_text += '</p>';
+		}
+		return tab_text;
+	}
+}
+
+
+/**
+ * Hide the corrections table.
+ */
+function hideCorrectionsTable(step) {
+	for(i = 0; i < sentences.length; i++) {
+		for(var j = 0; j < words[i].length; j++) {
+			var row = document.getElementById(step + '_highlight_table_' + i + '_' + j);
+			row.style.display = 'none';
+		}
+	}
+}
+
+
+/** 
+ * Writes sentence i to the HTML document and wraps 
+ * every word with a javascript click function.
+ */
+function writeSentence(step, i) {
+	var text = '';
+	for(j = 0; j < words[i].length; j++) {
+		var word = words[i][j];
+		text += '<span class="correct" id="' + step + '_word_' + i + '_' + j + '" onClick="clickWord(\'' + step + '\', ' + i + ', ' + j + ')"  onMouseOver="mouseOverWord(\'' + step + '\', ' + i + ', ' + j + ')" >';
+		text += word;
+		text += '</span> ';
+	}
+	return text;
+}
+
+/** 
+ * Writes sentence i to the HTML document and wraps 
+ * every word with a javascript click function.
+ */
+function writeTranslation(step, i, value) {
+	var text = '';
+	for(var j = 0; j < translation_words[i].length; j++) {
+		word = translation_words[i][j];
+		text += '<span class="correct" id="' + step + '_word_' + i + '_' + j + '_' + value + '" onClick="clickTranslation(\'' + step + '\', ' + i + ', ' + j + ', ' + value + ')"  onMouseOver="mouseOverWord(\'' + step + '\', ' + i + ', ' + j + ')" >';
+		text += word;
+		text += '</span> ';
+	}
+	return text;
+}
+
+
+
+
+/** 
+ * Writes the correction table for i to the HTML document as well as
+ * hidden  form elements for the highlight_mask and the num_highlights.
+ */
+function writeCorrectionsTable(step, i) {
+	var text = '';
+	text += '<table>';
+	for(j = 0; j < words[i].length; j++) {
+		var word = words[i][j];
+		text += '<tr class="hidden" id="' + step + '_highlight_table_' + i + '_' + j + '"><td>';
+		text += '<span id="' + step + '_selection_' + i + '_' + j + '">' + word + '</span>';
+		text += '</td><td>';
+		text += '<select id="' + step + '_correction_' + i + '_' + j + '" ';
+		text += ' onChange="correctWord(\'' + step + '\', ' + i + ', ' + j + ')">';
+		text += '<option value="[FIRSTNAME]">First Name</option>';
+		text += '<option value="[LASTNAME]">Last Name</option>';
+		text += '<option value="[MIDDILENAME]">Middle Name</option>';
+		text += '<option value="[PHONENUMBER]">Phone Number</option>';
+		text += '<option value="[EMAIL]">Email Address</option>';
+		text += '<option value="[HANDLE]">IM/Skype/Facebook/Twitter/Etc. Handle</option>';
+		text += '<option value="[OTHER]">Other</option>';
+		text += '</select>';
+		text += '</td></tr>';
+
+	}
+	text += '</table>';
+	text += '<input type="hidden" name="' + step + '_highlight_mask_' + (i+1) + '" id="' + step + '_highlight_mask_' + (i+1) + '" />';
+	text += '<input type="hidden" name="' + step + '_anonymized_' + (i+1) + '" id="' + step + '_anonymized_' + (i+1) + '" />';
+	text += '<input type="hidden" name="' + step + '_num_highlights_' + (i+1) + '" id="' + step + '_num_highlights_' + (i+1) + '" />'; 
+	return text;
+}
+
+
+
+
+/** 
+ * Writes an Alignment Table so that users can click on corresponding words in the foreign text.
+ */
+function writeAlignmentTable(step, i) {
+	var text = '';
+	text += '<table>';
+	for(j = 0; j < words[i].length; j++) {
+		var word = words[i][j];
+		//
+		text += '<tr class="hidden" id="' + step + '_highlight_table_' + i + '_' + j + '"><td>';
+		var word = words[i][j];
+		text += '<span class="highlight">' + word + '</span> ';
+		text += '</td><td>';
+		text += writeTranslation(step, i, j);
+		text += '</td><td>';
+		text += '</td></tr>';
+	}
+	text += '</table>';
+	text += '<input type="hidden" name="' + step + '_anonymized_' + (i+1) + '" id="' + step + '_anonymized_' + (i+1) + '" />'; 	
+	text += '<input type="hidden" name="' + step + '_num_highlights_' + (i+1) + '" id="' + step + '_num_highlights_' + (i+1) + '" />'; 
+	text += '<input type="hidden" name="' + step + '_alignments_' + (i+1) + '" id="' + step + '_alignments_' + (i+1) + '" />'; 
+	return text;
+}
+
+
+function boolArrayToString(array) {
+	var arrayString = "";
+	for(i = 0; i < array.length; i++) {
+		if(array[i]) {
+			arrayString = arrayString + "1";
+		} else {
+			arrayString = arrayString + "0";
+		}
+	}
+	return arrayString;
+}
+
+
+/**
+ * Corrects the word j in sentence i with the value in the text field
+ * checks to see if the correction is blank before replacing the word.
+ */
+function correctWord(step, i, j) { 
+	var word = document.getElementById(step + "_word_"+ i + '_' + j);
+	var correction = document.getElementById(step + "_correction_"+ i + '_' + j).value;
+	correction = correction.replace(/^\s+/g, "");
+	correction = correction.replace(/\s+$/g, "");
+	if(correction != "") {
+		word.innerText = correction;
+	}
+	if(highlighting_mode == "pair") {
+		other_word = spans[i][j];
+		var second_word = document.getElementById(step + "_word_"+ i + '_' + other_word);
+		var correction_of_second_word = document.getElementById(step + "_correction_"+ i + '_' + j + '_b').value;
+		correction_of_second_word = correction_of_second_word.replace(/^\s+/g, "");
+		correction_of_second_word = correction_of_second_word.replace(/\s+$/g, "");
+		if(correction_of_second_word != "") {
+			second_word.innerText = correction_of_second_word + " ";
+		}
+
+
+	}
+	compileCorrections(step, i);
+}
+
+/**
+ * Reverts the word j in sentence i to its original version.
+ */
+function uncorrectWord(step, i, j) { 
+	var word = document.getElementById(step + "_word_"+ i + '_' + j);
+	word.innerText = words[i][j] + " ";
+	compileCorrections(step, i);
+}
+
+
+
+/**
+ * Causes the highlights to be displayed in the HTML.
+ */
+function reset_highlights(step) {
+   if(step == 'anonymize_english') {
+	   for(var i = 0; i < highlights.length; i++) {
+		for(var j = 0; j < highlights[i].length; j++) {
+			var word = document.getElementById(step + "_word_"+ i + '_' + j);
+			if(tmp_highlights[i][j] && highlights[i][j] && !just_clicked[i]) {
+				word.className = "highlight_for_deletion";
+			} else if(highlights[i][j] && just_clicked[i]) {
+				word.className = "highlight";
+			} else if(tmp_highlights[i][j]) {
+				word.className = "tmp_highlight";
+			} else if(highlights[i][j]) {
+				word.className = "highlight";
+			} else {
+				word.className = "correct";
+			}
+		}
+   	}
+    } else {
+	for(var i = 0; i < translation_words.length; i++) {
+		for(var j = 0; j < translation_words[i].length; j++) {
+			for(var k = 0; k < words[i].length; k++) {
+				var word = document.getElementById(step + "_word_"+ i + '_' + j + '_' + k);
+				if(translation_alignment_index[i][j] == k) {
+					word.className = "highlight";
+				} else {
+					word.className = "correct";
+				}
+			}
+		}
+   	}
+    }
+}
+
+
+
+/**
+ * Clears the tmp highlights in all sentences.
+ */
+function clear_tmp_highlights() {
+	for(i = 0; i < tmp_highlights.length; i++) {
+		for(var j = 0; j < tmp_highlights[i].length; j++) {
+			tmp_highlights[i][j] = false;
+		}
+	}
+}
+
+
+
+
+/**
+ * This method specifies action to take when clicking on word j in sentence i.
+ */
+function clickWord(step, i, j) {
+	clear_tmp_highlights();	
+	// This governs the highlighting behavior when the selection mode is individual words. 
+	if(highlighting_mode == "word") {
+		highlights[i][j] = !highlights[i][j];
+		var row = document.getElementById(step + "_highlight_table_"+ i + '_' + j);
+		// ccb - this should be moved to somewhere else
+		var alignmentRow = document.getElementById("anonymize_haitian_creole_highlight_table_"+ i + '_' + j);
+		if(highlights[i][j]) {
+			row.style.display = "";
+			alignmentRow.style.display = "";
+			correctWord(step, i, j);
+			document.getElementById(step + "_correction_"+ i + '_' + j).focus();
+		} else {
+			row.style.display = "none";
+			alignmentRow.style.display = "none";
+			uncorrectWord(step, i, j);
+		}
+	// This governs the highlighting behavior when the selection mode is phrases. 
+	} else if(highlighting_mode == "phrase") {
+		if(previously_clicked_word[i] > -1) {
+			prev_click = previously_clicked_word[i];
+			span_start = Math.min(prev_click, j);
+			span_end = Math.max(prev_click, j);
+			if(prev_click == span_start) {
+				span_end = getMinHighlightableWord(i, span_start, span_end);
+			} else {
+				span_start = getMaxHighlightableWord(i, span_start, span_end);
+			}
+			spans[i][span_start] = span_end;
+			phrase = words[i][span_start] + " ";
+			var first_word = document.getElementById(step + "_word_"+ i + '_' + span_start);
+			highlights[i][span_start] = true;
+			for(var k = span_start +1; k <= span_end; k++) {
+				highlights[i][k] = true;
+				phrase += words[i][k] + " ";		
+				// update the first word with the content of the phrase
+				first_word.innerText = phrase;
+				// hide the remaining words
+				var word = document.getElementById(step + "_word_"+ i + '_' + k);
+				word.style.display = "none";
+				spans[i][k] = -1;
+			}
+			var selection = document.getElementById(step + "_selection_"+ i + '_' + span_start);
+			selection.innerText = phrase;
+			var row = document.getElementById(step + '_highlight_table_' + i + '_' + span_start);
+			row.style.display = "";
+			document.getElementById(step + "_correction_"+ i + '_' + span_start).focus();
+			previously_clicked_word[i] = -1;
+		} else {
+			if(!highlights[i][j]) {
+				previously_clicked_word[i] = j;
+				tmp_highlights[i][j] = true;
+			} else {
+				// unselect this phrase...
+				span_start = j;
+				span_end = spans[i][span_start];
+				for(var k = span_start; k <= span_end; k++) {
+					highlights[i][k] = false;
+					var word = document.getElementById(step + "_word_"+ i + '_' + k);
+					word.innerText = words[i][k] + " ";
+					word.style.display = "";
+				}
+				var row = document.getElementById(step + "_highlight_table_"+ i + '_' + span_start);
+				row.style.display = "none";
+				spans[i][j] = -1;
+				previously_clicked_word[i] = -1;
+			}
+		} 
+	// This governs the highlighting behavior when the selection mode is word pairs. 
+	} else if(highlighting_mode == "pair") {
+		// once we've already clicked on the first word, click on the second.
+		prev_click = previously_clicked_word[i];
+		if(prev_click > -1) {
+			// make sure that there are two words
+			if(prev_click != j && !highlights[i][j]) {
+				first_word = Math.min(j, prev_click);
+				second_word = Math.max(j, prev_click);
+				highlights[i][first_word] = true;
+				highlights[i][second_word] = true;
+				var selection = document.getElementById(step + "_selection_"+ i + '_' + first_word);
+				selection.innerText = words[i][first_word] + ' ... ' + words[i][second_word];
+				var row = document.getElementById(step + "_highlight_table_"+ i + '_' + first_word);
+				row.style.display = "";
+				document.getElementById(step + "_correction_"+ i + '_' + first_word).focus();
+				previously_clicked_word[i] = -1;
+				spans[i][first_word] = second_word;
+				spans[i][second_word] = first_word;
+			}
+		} else {
+			if(!highlights[i][j]) {
+				previously_clicked_word[i] = j;
+				tmp_highlights[i][j] = true;
+			} else {
+				// unselect this word pair...
+				first_word = Math.min(j, spans[i][j]);
+				second_word = Math.max(j, spans[i][j]);
+				highlights[i][first_word] = false;
+				highlights[i][second_word] = false;
+				spans[i][first_word] = -1;
+				spans[i][second_word] = -1;
+				var row = document.getElementById(step + "_highlight_table_"+ i + '_' + first_word);
+				row.style.display = "none";
+				previously_clicked_word[i] = -1;
+			}
+		} 
+
+	}
+	reset_highlights(step); 
+	just_clicked[i] = true;
+	document.getElementById(step + '_highlight_mask_' + (i+1)).value = boolArrayToString(highlights[i]);
+	document.getElementById(step + '_num_highlights_' + (i+1)).value = num_highlights[i];
+}
+
+
+
+/**
+ * This method specifies action to take when mousing over  word j in sentence i.
+ */
+function mouseOverWord(step, i, j) { 
+	clear_tmp_highlights();
+	if(highlighting_mode == "word") {
+		tmp_highlights[i][j] = true;
+	} else if(highlighting_mode == "phrase") {
+		if(previously_clicked_word[i] == -1) {
+			tmp_highlights[i][j] = true;
+		} else {
+			prev_click = previously_clicked_word[i];
+			span_start = Math.min(prev_click, j);
+			span_end = Math.max(prev_click, j);
+			if(prev_click == span_start) {
+				span_end = getMinHighlightableWord(i, span_start, span_end);
+			} else {
+				span_start = getMaxHighlightableWord(i, span_start, span_end);
+			}
+			for(var k = span_start; k <= span_end; k++) {
+				tmp_highlights[i][k] = true;
+			}
+		}
+
+	} else if(highlighting_mode == "pair") {
+		tmp_highlights[i][j] = true;
+		var prev_click = previously_clicked_word[i];
+		if(prev_click > -1) {
+			tmp_highlights[i][prev_click] = true;
+		}
+		var other_word = spans[i][j];
+		if(other_word > -1) {
+			tmp_highlights[i][other_word] = true;
+		} 
+	}
+	reset_highlights(step);
+	just_clicked[i] = false;
+}
+
+
+/**
+ * This method specifies action to take when clicking on word j in sentence i.
+ */
+function clickTranslation(step, i, j, value) {
+	if(translation_alignment_index[i][j] == -1) {
+		translation_alignment_index[i][j] = value;
+	} else {
+		translation_alignment_index[i][j] = -1;
+	}
+	reset_highlights(step);
+	compileCorrectionsForTranslation(step, i);
+}
+
+/** 
+ * Returns the minimum highlighted word in range [j-k) in sentence i.
+ */
+function getMinHighlightableWord(i, j, k) {
+	for(var l = j+1; l <= k; l++) {
+		if(highlights[i][l]) {
+			return l-1;
+		}
+	}
+	return k;
+}
+
+
+/** 
+ * Returns the maximum highlighted word in range [j-k] in sentence i.
+ */
+function getMaxHighlightableWord(i, j, k) {
+	for(var l = k-1; l > j; l--) {
+		if(highlights[i][l]) {
+			return l+1;
+		}
+	}
+	return j;
+}
+
+/**
+ * Compiles the corrections for a sentence.
+ */
+function compileCorrections(step, i) {
+	// reconstruct the new sentence from the corrections
+	var sentence = "";
+	for(var j = 0; j < words[i].length; j++) {
+		if(highlights[i][j]) {
+			var word = document.getElementById(step + '_word_' + i + '_' + j);
+			sentence += word.innerText + " ";			
+		} else {
+			sentence += words[i][j] + " ";
+		}
+	}
+	// clean up extraneous spaces
+	sentence = sentence.replace(/^\s+/g, "");
+	sentence = sentence.replace(/\s+$/g, "");
+	sentence = sentence.replace(/\s+/g, " ");
+	// ccb - debugging
+	//alert(sentence);
+	var anonymizedFormElement = document.getElementById(step + '_anonymized_' + (i+1));
+	anonymizedFormElement.value = sentence;
+}
+
+
+/**
+ * Compiles the corrections for a sentence.
+ */
+function compileCorrectionsForTranslation(step, i) {
+	// reconstruct the new sentence from the corrections
+	var sentence = new Array(words[i].length);
+	for(var j = 0; j < words[i].length; j++) {
+		var word = document.getElementById('anonymize_english' + '_word_' + i + '_' + j);
+		if(word.style.display != "none") {
+			sentence[j] = word.innerText;
+		} else {
+			sentence[j] = 'x';
+		}
+		
+	}
+	var translation = "";
+	var alignments = "";
+	var numClicked = 0;
+	for(var j = 0; j < translation_words[i].length; j++) {
+		if(translation_alignment_index[i][j] > -1) {
+			var index_into_sentence = parseInt(translation_alignment_index[i][j]);
+			translation += sentence[index_into_sentence] + ' ';
+			numClicked++;
+			alignments += j + '-' + index_into_sentence + ' ';
+		} else {
+			translation += translation_words[i][j] + ' ';
+		}
+	}
+	translation = translation.replace(/^\s+/g, "");
+	translation = translation.replace(/\s+$/g, "");
+	translation = translation.replace(/\s+/g, " ");
+	// ccb - debugging
+	//alert(translation);
+	var anonymizedFormElement = document.getElementById(step + '_anonymized_' + (i+1));
+	anonymizedFormElement.value = translation;
+	var numClickedFormElement = document.getElementById(step + '_num_highlights_' + (i+1));
+	numClickedFormElement.value = numClicked;
+	var alignmentsFormElement = document.getElementById(step + '_alignments_' + (i+1));
+	alignmentsFormElement.value = alignments;
+}
+</script>
+<table>
+    <tbody>
+        <tr>
+            <td width="75%">
+            <h1>Anonymize emergency response SMS messages</h1>
+            <p>These text messages (SMS) were sent by people in Haiti in the aftermath of the January 2010 earthquake.  The messages were sent to an emergency response service and information service called &quot;Mission 4636&quot;.  They were originally written in Haitian Creole, and were translated into English by a group of volunteers during the disaster response so that first responders (many of whom did not speak Haitian Creole) could understand and act on them. Simultaneously, volunteers were making maps of Haiti and helping to pinpoint the locations described in the messages.  More than 30,000 messages were sent to the 4636 number.  First responders used the volunteer created translations and maps, and were able to act on the vast majority of requests for help.</p>
+            <p>The goal of this HIT is to anonymize the SMS data so that it may be shared with researchers who are developing translation and mapping technologies to support future emergency relief efforts and social development.   When viewing these messages, please be aware that they are actual communications sent by people in need in a time of crisis.  Please be cognizant of the following:</p>
+            <ul>
+                <li>The people who sent the messages (and who are discussed in them) were victims of a natural disaster and a humanitarian crisis.  Please treat the messages with the appropriate respect for these individuals.</li>
+                <li>Some messages may be distressing in content. Sensitive workers may want to avoid this HIT.</li>
+                <li>The primary motivation of this research is to understand how we achieve better reactions to crises in the future.</li>
+            </ul>
+            <p>&nbsp;</p>
+            <p>Instructions: This HIT is a two step process. In the first step you should click on the English words to be anonymized and select their type from the drop down menus that appear.  Then select the &quot;Step 2&quot; tab and find the corresponding foreign words.  You do not need to be able to speak the foreign language to complete the task, because names and numbers are generally spelled similarly.</p>
+            </td>
+            <td bgcolor="#d3d3d3"><font size="-2"><center><u><b>Informed Consent Form</b></u></center>
+            <p><b>Purpose of research study:</b> We are anonymizing SMS data so that it may be shared among organizations who are developing language and mapping technologies to support future emergency relief efforts and social development.</p>
+            <p><b>Benefits:</b> Although it will not directly benefit you, this study may benefit society by helping to develop technology that allows better responses to future humanitarian crises.</p>
+            <p><b>Risks:</b>There are no risks for participating in this study.</p>
+            <p><b>Voluntary participation:</b>You may stop participating at any time without penalty by clicking on the &ldquo;Return HIT&rdquo; button, or closing your browser window.</p>
+            <p><b>We may end your participation if</b> you do not have adequate knowledge of the language, or you are not following the instructions, or your answers significantly deviate from known translations.</p>
+            <p><b>Confidentiality: </b>The only identifying information kept about you will be a WorkerID serial number and your IP address. This information may be disclosed to other researchers.</p>
+            <p><b>Questions/concerns: </b>You may e-mail questions to the principle investigator, <a href="http://cs.jhu.edu/~ccb/">Chris Callison-Burch</a>. If you feel you have been treated unfairly you may contact the Johns Hopkins University <a href="http://web.jhu.edu/Homewood-IRB/contact.html">Institutional Review Board</a>.</p>
+            <p><b>Clicking on the &ldquo;Accept HIT&rdquo; button</b> indicates that you understand the information in this consent form. You have not waived any legal rights you otherwise would have as a participant in a research study.</p>
+            </font></td>
+        </tr>
+    </tbody>
+</table>
+<p>&nbsp;</p>
+<script type="text/Javascript">
+writeTabs();
+// jQuery tab setup.
+  $(document).ready(function() {
+
+  });
+
+var $tabs = $('#tabs').tabs();
+var selected = $tabs.tabs('option', 'selected');
+var highlighting_mode = highlighting_modes[steps[selected]];
+var current_step = steps[selected];
+</script>
+<p><b>Remember to click on the Step 2 tab above to find the corresponding words in the Haitian Creole messages.</b></p>
+<p>Thank you for doing our HIT and for helping with this effort.  Your work may contribute towards better responses to future humanitarian crises.  Secretary of State Clinton described one success of the Mission 4636 program:  <i> &quot;The technology community has set up interactive maps to help us identify needs and target resources. And on Monday, a seven-year-old girl and two women were pulled from the rubble of a collapsed supermarket by an American search-and-rescue team after they sent a text message calling for help.&quot; </i> Ushahidi@Tufts described another: <i> &quot;The World Food Program delivered food to an informal camp of 2500 people, having yet to receive food or water, in Diquini to a location that 4636 had identified for them.&quot; </i></p>
+<p>Please provide any comments that you have about this HIT. We appreciate your input!</p>
+<p><textarea rows="4" cols="80" name="comment"> </textarea>&nbsp;</p>
+<p><input type="hidden" name="userDisplayLanguage" /> <input type="hidden" name="browserInfo" /> <input type="hidden" name="ipAddress" /> <input type="hidden" name="country" /> <input type="hidden" name="city" /> <input type="hidden" name="region" /></p>
+<script language="Javascript" src="http://gd.geobytes.com/gd?after=-1&variables=GeobytesCountry,GeobytesCity,GeobytesRegion,GeobytesIpAddress">
+</script><script language="Javascript">
+<!--
+function getUserInfo() {
+	var userDisplayLanguage = navigator.language ? navigator.language : navigator.userDisplayLanguage;
+	var browserInfo = navigator.userAgent;
+	var country = sGeobytesCountry;
+	var city = sGeobytesCity;
+	var region = sGeobytesRegion;
+
+	document.mturk_form.userDisplayLanguage.value = userDisplayLanguage;
+	document.mturk_form.browserInfo.value = browserInfo;
+	document.mturk_form.country.value = country;
+	document.mturk_form.city.value = city;
+	document.mturk_form.region.value = region;
+}
+
+getUserInfo();
+
+// -->
+</script>

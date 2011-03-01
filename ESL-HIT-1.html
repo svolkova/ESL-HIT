@@ -1,0 +1,587 @@
+<style type="text/css">
+<!-- 
+span.correct { background-color: #FFFFFF; }
+span.highlight  { background-color: yellow; }
+span.tmp_highlight  { background-color: lightgreen; }
+span.highlight_for_deletion  { background-color: red; }
+A:link {text-decoration: none; color: black;}
+A:visited {text-decoration: none; color: black;}
+A:active {text-decoration: none; color: black;}
+A:hover {text-decoration: none; color: black;}
+//-->
+</style>
+
+<link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
+  
+
+<script type="text/Javascript">
+//var sentences = ["${sentence_1}", "${sentence_2}", "${sentence_3}", "${sentence_4}", "${sentence_5}", "${sentence_6}", "${sentence_7}", "${sentence_8}", "${sentence_9}", "${sentence_10}"]; 
+
+var sentences = [ 
+	"Sri Lanka 's forest region was destroyed by agriculture , wooden works , vetinary feeds , etc . ,",    
+	"several commissions where created to protect the remaining forest region",   
+	"Sri Lanka is considered as the bird 's sanctionary place .",     
+	"For further information please see the article on bird sanctionary rights in Indian Subcontinent",   
+	"There is thousand of animals living in Sri Lanka which includes several Sri Lanka orignated animals .",   
+	"When we compare the area of Sri lanka 's Island , birds are highly found here .",   
+	"Apart from the birds that live here , specific number of migrant birds that come from the north pole to avoind their winter season come to SriLanka .", 
+	"Among the bird species , 233 live in Srilanka , in that 26 belong to intra state .", 
+	"Others live in the Indian sub continent , however more than 80 of them have special features that are unique to Sri Lanka .",
+	 "Some of the breeds based on their feather formation characteristics largely differ from the Indian breeds ."
+]; 
+
+
+var words = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var highlights = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var tmp_highlights = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var num_highlights = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+var previously_clicked_word = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
+var spans = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var just_clicked = [];
+
+var steps = [ 'spelling', 'prepositions', 'determiners', 'agreement', 'verbs', 'awk_phrases' ]
+
+var tab_names = new Array();
+tab_names['spelling'] = 'Spelling / Capitalization';
+tab_names['prepositions'] = 'Prepositions';
+tab_names['determiners'] = 'Determiners';
+tab_names['agreement'] = 'Agreement';
+tab_names['verbs'] = 'Verb Forms';
+tab_names['awk_phrases'] = 'Awkward Phrases';
+ 
+var highlighting_modes = new Array();
+highlighting_modes['spelling'] = 'word';
+highlighting_modes['prepositions'] = 'word';
+highlighting_modes['determiners'] = 'word';
+highlighting_modes['agreement'] = 'pair';
+highlighting_modes['verbs'] = 'word';
+highlighting_modes['awk_phrases'] = 'phrase';
+
+var descriptions = new Array();
+descriptions['spelling'] = '<p>Please correct spelling errors by clicking on words and typing out a replacement. Also please correct words that use incorrect case conventions.</p>';
+descriptions['prepositions'] = "<p>Prepositions like <i>about, at, by, down, for, from, in, into, of, off, on, onto, out, over, to, up, upon, with, within,</i> etc. are difficult ESL writers.  In this step you should correct any prepositions that are used incorrectly.</p>";
+descriptions['agreement'] = "";
+descriptions['verbs'] = "";
+descriptions['awk_phrases'] = "";
+descriptions['determiners'] = "";
+
+/**
+ * Initalizes the arrays that store the space-delimited words, 
+ * and the boolean arrays that indicate what words were marked
+ * as highlights.
+ */
+function initalizeArrays() { 
+	var initial_highlights = "";
+	for(var i = 0; i < sentences.length; i++) {
+		words[i] = sentences[i].split(/\s/);
+		highlights[i] = initalizeArray(words[i].length, false);
+		tmp_highlights[i] = initalizeArray(words[i].length, false);
+		num_highlights[i] = 0;
+		spans[i] = initalizeArray(words[i].length, -1);
+		previously_clicked_word[i] = -1;
+		just_clicked[i] = false;
+	}
+}
+
+
+/**
+ * Initializes an array with the specified value to be the specified length.
+ */
+function initalizeArray(length, value) {
+	var array = new Array(length);
+	for (i = 0; i < array.length; i++) {
+		array[i] = value;
+	}
+	return array;
+}
+
+
+/**
+ * Write the tabs by iterating through the steps, 
+ * and naming them according to the tab_names.
+ */
+function writeTabs() {
+	document.write('<div id="tabs">');
+	document.write('<ul>');
+	for(var i = 0; i < steps.length; i++) {
+        	document.write('<li><a href="#' + steps[i] + '">');
+		document.write('<span>' + tab_names[steps[i]] + '</span>');
+		document.write('</a></li>');
+	}
+	document.write('</ul>');
+
+	for(var i = 0; i < steps.length; i++) {
+        	document.write('<div id="' + steps[i] + '"> ');
+		document.write('</div>');
+	}
+	document.write('</div>');
+
+	for(var i = 0; i < steps.length; i++) {
+		document.getElementById(steps[i]).innerHTML = writeTab(steps[i]);
+	}
+
+	for(var i = 0; i < steps.length; i++) {
+		hideCorrectionsTable(steps[i]);
+	}
+}
+
+function updateTab(step) {
+	document.getElementById(step).innerHTML = writeTab(step);
+	hideCorrectionsTable(step);
+}
+
+
+/**
+ * Write the sentences and the correction table.
+ */
+function writeTab(step) {
+	initalizeArrays();
+	tab_text = descriptions[step] + '<hr>';
+	// ccb - we could create a separate pane what records changes have been made...
+	// tab_text += '<table><tr><td width="80%">';
+	for(i = 0; i < sentences.length; i++) {
+		tab_text += '<p>';
+		tab_text += writeSentence(step, i);
+		tab_text += writeCorrectionsTable(step, i);
+		tab_text += '</p>';
+	}
+	// ccb - pane with changes...
+	//tab_text += '</td><td >';
+	//tab_text += 'changes here';
+	//tab_text += '</td></tr></table>';
+	return tab_text;
+}
+
+
+/**
+ * Hide the corrections table.
+ */
+function hideCorrectionsTable(step) {
+	for(i = 0; i < sentences.length; i++) {
+		for(var j = 0; j < words[i].length; j++) {
+			var row = document.getElementById(step + '_highlight_table_' + i + '_' + j);
+			row.style.display = 'none';
+		}
+	}
+}
+
+/** 
+ * Writes sentence i to the HTML document and wraps 
+ * every word with a javascript click function.
+ */
+function writeSentence(step, i) {
+	var text = '';
+	for(j = 0; j < words[i].length; j++) {
+		var word = words[i][j];
+		text += '<span class="correct" id="' + step + '_word_' + i + '_' + j + '" onClick="clickWord(\'' + step + '\', ' + i + ', ' + j + ')"  onMouseOver="mouseOverWord(\'' + step + '\', ' + i + ', ' + j + ')" >';
+		text += word;
+		text += ' </span>';
+	}
+	return text;
+}
+
+/** 
+ * Writes the correction table for i to the HTML document as well as
+ * hidden  form elements for the highlight_mask and the num_highlights.
+ */
+function writeCorrectionsTable(step, i) {
+	var text = '';
+	// set the width of the text inputs
+	var width = 20;
+	if(highlighting_mode == "phrase") {
+		width = 40;
+	} else if(highlighting_mode == "pair") {
+		width = 10;
+	}
+	text += '<table>';
+	for(j = 0; j < words[i].length; j++) {
+		var word = words[i][j];
+		text += '<tr class="hidden" id="' + step + '_highlight_table_' + i + '_' + j + '"><td>';
+		text += '<span id="' + step + '_selection_' + i + '_' + j + '">' + word + '</span>';
+		text += '</td><td>';
+		text += '<input type="text" onblur="correctWord(\'' + step + '\', ' + i + ', ' + j + ')" id="' + step + '_correction_' + i + '_' + j + '" size="' + width + '" />';
+		if(highlighting_mode == "pair") {
+			text += ' ... <input type="text" onblur="correctWord(\'' + step + '\', ' + i + ', ' + j + ')" id="' + step + '_correction_' + i + '_' + j + '_b" size="' + width + '" />';
+		}
+		text += '</td></tr>';
+
+	}
+	text += '</table>';
+	text += '<input type="hidden" name="' + step + '_highlight_mask_' + (i+1) + '" id="' + step + '_highlight_mask_' + (i+1) + '" />';
+	text += '<input type="hidden" name="' + step + '_num_highlights_' + (i+1) + '" id="' + step + '_num_highlights_' + (i+1) + '" />';
+	return text;
+}
+
+
+function boolArrayToString(array) {
+	var arrayString = "";
+	for(i = 0; i < array.length; i++) {
+		if(array[i]) {
+			arrayString = arrayString + "1";
+		} else {
+			arrayString = arrayString + "0";
+		}
+	}
+	return arrayString;
+}
+
+
+/**
+ * Corrects the word j in sentence i with the value in the text field
+ * checks to see if the correction is blank before replacing the word.
+ */
+function correctWord(step, i, j) { 
+	var word = document.getElementById(step + "_word_"+ i + '_' + j);
+	var correction = document.getElementById(step + "_correction_"+ i + '_' + j).value;
+	correction = correction.replace(/^\s+/g, "");
+	correction = correction.replace(/\s+$/g, "");
+	if(correction != "") {
+		word.innerText = correction + " ";
+	}
+	if(highlighting_mode == "pair") {
+		other_word = spans[i][j];
+		var second_word = document.getElementById(step + "_word_"+ i + '_' + other_word);
+		var correction_of_second_word = document.getElementById(step + "_correction_"+ i + '_' + j + '_b').value;
+		correction_of_second_word = correction_of_second_word.replace(/^\s+/g, "");
+		correction_of_second_word = correction_of_second_word.replace(/\s+$/g, "");
+		if(correction_of_second_word != "") {
+			second_word.innerText = correction_of_second_word + " ";
+		}
+
+
+	}
+}
+
+/**
+ * Reverts the word j in sentence i to its original version.
+ */
+function uncorrectWord(step, i, j) { 
+	var word = document.getElementById(step + "_word_"+ i + '_' + j);
+	word.innerText = words[i][j] + " ";
+}
+
+
+
+/**
+ * Causes the highlights to be displayed in the HTML.
+ */
+function reset_highlights(step) {
+   for(var i = 0; i < highlights.length; i++) {
+	for(var j = 0; j < highlights[i].length; j++) {
+		var word = document.getElementById(step + "_word_"+ i + '_' + j);
+		if(tmp_highlights[i][j] && highlights[i][j] && !just_clicked[i]) {
+			word.className = "highlight_for_deletion";
+		} else if(highlights[i][j] && just_clicked[i]) {
+			word.className = "highlight";
+		} else if(tmp_highlights[i][j]) {
+			word.className = "tmp_highlight";
+		} else if(highlights[i][j]) {
+			word.className = "highlight";
+		} else {
+			word.className = "correct";
+		}
+	}
+   }
+}
+
+
+
+/**
+ * Clears the tmp highlights in all sentences.
+ */
+function clear_tmp_highlights() {
+	for(i = 0; i < tmp_highlights.length; i++) {
+		for(var j = 0; j < tmp_highlights[i].length; j++) {
+			tmp_highlights[i][j] = false;
+		}
+	}
+}
+
+
+/**
+ * This method specifies action to take when clicking on word j in sentence i.
+ */
+function clickWord(step, i, j) {
+	clear_tmp_highlights();	
+	// This governs the highlighting behavior when the selection mode is individual words. 
+	if(highlighting_mode == "word") {
+		highlights[i][j] = !highlights[i][j];
+		var row = document.getElementById(step + "_highlight_table_"+ i + '_' + j);
+		if(highlights[i][j]) {
+			row.style.display = "";
+			correctWord(step, i, j);
+			document.getElementById(step + "_correction_"+ i + '_' + j).focus();
+		} else {
+			row.style.display = "none";
+			uncorrectWord(step, i, j);
+		}
+	// This governs the highlighting behavior when the selection mode is phrases. 
+	} else if(highlighting_mode == "phrase") {
+		if(previously_clicked_word[i] > -1) {
+			prev_click = previously_clicked_word[i];
+			span_start = Math.min(prev_click, j);
+			span_end = Math.max(prev_click, j);
+			if(prev_click == span_start) {
+				span_end = getMinHighlightableWord(i, span_start, span_end);
+			} else {
+				span_start = getMaxHighlightableWord(i, span_start, span_end);
+			}
+			spans[i][span_start] = span_end;
+			phrase = words[i][span_start] + " ";
+			var first_word = document.getElementById(step + "_word_"+ i + '_' + span_start);
+			highlights[i][span_start] = true;
+			for(var k = span_start +1; k <= span_end; k++) {
+				highlights[i][k] = true;
+				phrase += words[i][k] + " ";		
+				// update the first word with the content of the phrase
+				first_word.innerText = phrase;
+				// hide the remaining words
+				var word = document.getElementById(step + "_word_"+ i + '_' + k);
+				word.style.display = "none";
+				spans[i][k] = -1;
+			}
+			var selection = document.getElementById(step + "_selection_"+ i + '_' + span_start);
+			selection.innerText = phrase;
+			var row = document.getElementById(step + '_highlight_table_' + i + '_' + span_start);
+			row.style.display = "";
+			document.getElementById(step + "_correction_"+ i + '_' + span_start).focus();
+			previously_clicked_word[i] = -1;
+		} else {
+			if(!highlights[i][j]) {
+				previously_clicked_word[i] = j;
+				tmp_highlights[i][j] = true;
+			} else {
+				// unselect this phrase...
+				span_start = j;
+				span_end = spans[i][span_start];
+				for(var k = span_start; k <= span_end; k++) {
+					highlights[i][k] = false;
+					var word = document.getElementById(step + "_word_"+ i + '_' + k);
+					word.innerText = words[i][k] + " ";
+					word.style.display = "";
+				}
+				var row = document.getElementById(step + "_highlight_table_"+ i + '_' + span_start);
+				row.style.display = "none";
+				spans[i][j] = -1;
+				previously_clicked_word[i] = -1;
+			}
+		} 
+	// This governs the highlighting behavior when the selection mode is word pairs. 
+	} else if(highlighting_mode == "pair") {
+		// once we've already clicked on the first word, click on the second.
+		prev_click = previously_clicked_word[i];
+		if(prev_click > -1) {
+			// make sure that there are two words
+			if(prev_click != j && !highlights[i][j]) {
+				first_word = Math.min(j, prev_click);
+				second_word = Math.max(j, prev_click);
+				highlights[i][first_word] = true;
+				highlights[i][second_word] = true;
+				var selection = document.getElementById(step + "_selection_"+ i + '_' + first_word);
+				selection.innerText = words[i][first_word] + ' ... ' + words[i][second_word];
+				var row = document.getElementById(step + "_highlight_table_"+ i + '_' + first_word);
+				row.style.display = "";
+				document.getElementById(step + "_correction_"+ i + '_' + first_word).focus();
+				previously_clicked_word[i] = -1;
+				spans[i][first_word] = second_word;
+				spans[i][second_word] = first_word;
+			}
+		} else {
+			if(!highlights[i][j]) {
+				previously_clicked_word[i] = j;
+				tmp_highlights[i][j] = true;
+			} else {
+				// unselect this word pair...
+				first_word = Math.min(j, spans[i][j]);
+				second_word = Math.max(j, spans[i][j]);
+				highlights[i][first_word] = false;
+				highlights[i][second_word] = false;
+				spans[i][first_word] = -1;
+				spans[i][second_word] = -1;
+				var row = document.getElementById(step + "_highlight_table_"+ i + '_' + first_word);
+				row.style.display = "none";
+				previously_clicked_word[i] = -1;
+			}
+		} 
+
+	}
+	reset_highlights(step); 
+	just_clicked[i] = true;
+	document.getElementById(step + '_highlight_mask_' + (i+1)).value = boolArrayToString(highlights[i]);
+	document.getElementById(step + '_num_highlights_' + (i+1)).value = num_highlights[i];
+}
+
+
+
+/**
+ * This method specifies action to take when mousing over  word j in sentence i.
+ */
+function mouseOverWord(step, i, j) { 
+	clear_tmp_highlights();
+	if(highlighting_mode == "word") {
+		tmp_highlights[i][j] = true;
+	} else if(highlighting_mode == "phrase") {
+		if(previously_clicked_word[i] == -1) {
+			tmp_highlights[i][j] = true;
+		} else {
+			prev_click = previously_clicked_word[i];
+			span_start = Math.min(prev_click, j);
+			span_end = Math.max(prev_click, j);
+			if(prev_click == span_start) {
+				span_end = getMinHighlightableWord(i, span_start, span_end);
+			} else {
+				span_start = getMaxHighlightableWord(i, span_start, span_end);
+			}
+			for(var k = span_start; k <= span_end; k++) {
+				tmp_highlights[i][k] = true;
+			}
+		}
+
+	} else if(highlighting_mode == "pair") {
+		tmp_highlights[i][j] = true;
+		var prev_click = previously_clicked_word[i];
+		if(prev_click > -1) {
+			tmp_highlights[i][prev_click] = true;
+		}
+		var other_word = spans[i][j];
+		if(other_word > -1) {
+			tmp_highlights[i][other_word] = true;
+		} 
+	}
+	reset_highlights(step);
+	just_clicked[i] = false;
+}
+
+
+
+
+/** 
+ * Returns the minimum highlighted word in range [j-k) in sentence i.
+ */
+function getMinHighlightableWord(i, j, k) {
+	for(var l = j+1; l <= k; l++) {
+		if(highlights[i][l]) {
+			return l-1;
+		}
+	}
+	return k;
+}
+
+
+/** 
+ * Returns the maximum highlighted word in range [j-k] in sentence i.
+ */
+function getMaxHighlightableWord(i, j, k) {
+	for(var l = k-1; l > j; l--) {
+		if(highlights[i][l]) {
+			return l+1;
+		}
+	}
+	return j;
+}
+
+/**
+ * Compiles the corrections for a sentence.
+ */
+function compileCorrections(step, i) {
+	// reconstruct the new sentence from the corrections
+	var sentence = "";
+	for(var j = 0; j < words[i].length; j++) {
+		var word = document.getElementById(step + '_word_' + i + '_' + j);
+		if(word.style.display != "none") {
+			sentence += word.innerText + " ";
+			
+		}
+	}
+	// clean up extraneous spaces
+	sentence = sentence.replace(/^\s+/g, "");
+	sentence = sentence.replace(/\s+$/g, "");
+	sentence = sentence.replace(/\s+/g, " ");
+
+
+	// collect the individual changes
+	var changes = '|||' + step + '|' + sentences[i] + '|' + sentence + '|';
+	for(var j = 0; j < words[i].length; j++) {
+		// this word / region has been changed
+		if(highlights[i][j]) {
+			var word = document.getElementById(step + '_word_' + i + '_' + j);
+			var replacementText = word.innerText;
+			if(highlighting_mode == "word") {
+				changes += 'word' + '|' + j + '|' + replacementText + '|';
+			} else if(highlighting_mode == "pair") {
+				var other_word_index = spans[j];
+				if(j < other_word_index) {
+					var replacementText = document.getElementById(step + '_word_' + i + '_' + other_word_index);
+					var pair_indicies = j + ',' + other_word_index;
+					changes += 'pair' + '|' + pair_indicies + '|' + replacementText + ' ... ' + other_word.innerText + '|';
+				}
+			} else if(highlighting_mode == "phrase") {
+				var span_end = spans[j];
+				if(span_end > -1) {
+					var span = j + '-' + span_end;
+					changes += 'pair' + '|' + span + '|' + replacementText + '|';
+				}
+			}
+		}
+	}
+	if(sentence != sentences[i]) {
+		// save the new sentence into the sentences array so that it gets used in the next step.
+		sentences[i] = sentence;
+		alert(changes);
+	}
+}
+
+
+
+writeTabs();
+// jQuery tab setup.
+  $(document).ready(function() {
+    $("#tabs").tabs({
+	select: function(e, ui) {
+		for(var i = 0; i < sentences.length; i++) {
+			compileCorrections(current_step, i);
+		}
+		initalizeArrays();
+		var step = ui.panel.id;
+		highlighting_mode = highlighting_modes[step];
+		current_step = step;
+		// update the HTML of the tab with the reinitialized sentences, etc. 
+		updateTab(step);
+	}
+    });
+  });
+
+var $tabs = $('#tabs').tabs();
+var selected = $tabs.tabs('option', 'selected');
+var highlighting_mode = highlighting_modes[steps[selected]];
+var current_step = steps[selected];
+
+
+</script>
+
+<p>Thanks for doing our HIT! Please provide any comments that you have about this HIT. We appreciate your input!</p>
+<p><textarea rows="4" cols="80" name="comment"> </textarea>&nbsp;</p>
+<p><input type="hidden" name="userDisplayLanguage" /> <input type="hidden" name="browserInfo" /> <input type="hidden" name="ipAddress" /> <input type="hidden" name="country" /> <input type="hidden" name="city" /> <input type="hidden" name="region" /></p>
+<script language="Javascript" src="http://gd.geobytes.com/gd?after=-1&variables=GeobytesCountry,GeobytesCity,GeobytesRegion,GeobytesIpAddress">
+</script><script language="Javascript">
+<!--
+function getUserInfo() {
+	var userDisplayLanguage = navigator.language ? navigator.language : navigator.userDisplayLanguage;
+	var browserInfo = navigator.userAgent;
+	var country = sGeobytesCountry;
+	var city = sGeobytesCity;
+	var region = sGeobytesRegion;
+
+	document.mturk_form.userDisplayLanguage.value = userDisplayLanguage;
+	document.mturk_form.browserInfo.value = browserInfo;
+	document.mturk_form.country.value = country;
+	document.mturk_form.city.value = city;
+	document.mturk_form.region.value = region;
+}
+
+getUserInfo();
+
+// -->
+</script> 
