@@ -36,11 +36,11 @@ var sentences = [
 "One two three",
 "four five six",
 "seven eight"
-]
+];
 
 
-var words = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
-var highlights = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var words = [ [], [], [], [], [], [], [], [] ,[] ,[]];
+var highlights = [ [], [], [], [], [], [], [], [] ,[] ,[]];
 var tmp_highlights = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
 var num_highlights = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 var previously_clicked_word = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
@@ -48,58 +48,158 @@ var spans = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
 var just_clicked = [];
 var global_changes = [];
 
-var steps = [ 'spelling', 'articles', 'other_determiners', 'noun_numbers', 'noun_of_noun', 'pronouns', 'prepositions', 'sv_agreement', 'tense', 'verb_form_ig', 'word_form', 'adj', 'missing', 'awk_phrases']
+var steps = [ 'spelling', 'articles', 
+//'other_determiners', 'noun_numbers',
+'det_noun', 'noun_of_noun',
+'pronouns', 'prepositions', 'sv_agreement', 'tense', 'verb_form_ig', 'word_form',
+//'adj', 'missing',
+'awk_phrases'];
 
 var tab_names = new Array();
-tab_names['spelling'] = 'Spelling / Capitalization';
-tab_names['articles'] = 'Articles';
-tab_names['other_determiners'] = 'Other Determiners';
-tab_names['noun_numbers'] = 'Noun Numbers';
-tab_names['noun_of_noun'] = 'Noun of Noun';
-tab_names['pronouns'] = 'Pronouns';
-tab_names['prepositions'] = 'Prepositions';
-tab_names['sv_agreement'] = 'Agreement';
+tab_names['spelling'] = 'Spelling / Punctuation';//+
+tab_names['articles'] = 'Determiner';//+
+tab_names['det_noun'] = 'Noun Agreement';
+//tab_names['other_determiners'] = 'Other Determiners';
+//tab_names['noun_numbers'] = 'Noun Numbers';//agreement between noun and determiner
+tab_names['noun_of_noun'] = 'Noun';//+
+tab_names['pronouns'] = 'Pronoun';//+
+tab_names['prepositions'] = 'Preposition';//+T
+//tab_names['adj'] = 'Adjective';
+//tab_names['adj'] = 'Adverb';
+tab_names['sv_agreement'] = 'Verb Agreement';
 tab_names['tense'] = 'Tense';
 tab_names['verb_form_ig'] = 'Verb Form';
-tab_names['word_form'] = 'Word Form';
-tab_names['adj'] = 'Adjectives';
-tab_names['missing'] = 'Missing Fragment';
+tab_names['word_form'] = 'Word Form';//adjective vs. adverb confussion
+//tab_names['missing'] = 'Missing Fragment';//if subject or verb is missing then it should be corrected at agreement tab
 tab_names['awk_phrases'] = 'Awkward Phrases';
  
 var highlighting_modes = new Array();
 highlighting_modes['spelling'] = 'word';
 highlighting_modes['articles'] = 'word';
-highlighting_modes['other_determiners'] = 'word';
-highlighting_modes['noun_numbers'] = 'word';
+highlighting_modes['det_noun'] = 'word';//should be a pair
+//highlighting_modes['other_determiners'] = 'word';
+//highlighting_modes['noun_numbers'] = 'word';
 highlighting_modes['noun_of_noun'] = 'phrase';
 highlighting_modes['pronouns'] = 'word';
 highlighting_modes['prepositions'] = 'word';
-highlighting_modes['sv_agreement'] = 'word'; //may be a pair 
-highlighting_modes['tense'] = 'word';  //may be a pair
+highlighting_modes['sv_agreement'] = 'word'; //should be a pair 
+highlighting_modes['tense'] = 'word'; 
 highlighting_modes['verb_form_ig'] = 'word';
 highlighting_modes['word_form'] = 'word';
-highlighting_modes['adj'] = 'phrase';
-highlighting_modes['missing'] = 'phrase';
+//highlighting_modes['adj'] = 'phrase';
+//highlighting_modes['missing'] = 'phrase';
 highlighting_modes['awk_phrases'] = 'phrase';
 
 var descriptions = new Array();
-descriptions['spelling'] = "<p><b>Instructions:</b> Please correct spelling errors by clicking on words and typing out a replacement. Also please correct words that use incorrect case conventions.</p>";
-descriptions['articles'] = "<p><b>Instructions:</b> Please correct article errors by clicking on a word and changing incorrect article, adding missing article or deleting unnecessary article:</p> <ul> <li>an incorrect article is used (<i>a/an</i> instead of <i>the</i> or vice versa):  <ul> <font color=green><i><li>In Europe, the First World War started coming to *an/the end after a huge destruction.</li> <li>Blogs are considered as *the/a direct way to participate in politics.</li></i></font> </ul>  <li>an article is missing but it is required:  <ul> <font color=green><i><li>Command line scripting: PHP script can run without */a server.</li>  <li>There were no instances of NTR faltering in front of */the camera.</li>  <li>Hardware errors are one type of errors in */the kernel.</li></i></font> </ul>  <li>an unnecessary article appears:  <ul> <font color=green><i><li>All *the warring nations commenced deliberations.</li> <li>However, *the specific defects are not known.</li> <li>They could not attain a victory.</li> <li>Many interactive multimedia encyclopedias written by *the people existed before Wikipedia.</li></i></font> </ul> </ul></i></font> </p>" 
+descriptions['spelling'] = "<font color=red><p> You must select individual words on this tab.</p></font>" +
+"<p><b>Instructions:</b> Please correct spelling errors, punctuation errors and incorrect case conventions by clicking on a word and typing out a replacement." +
+"<ul><font color=green><li>Incorrect: <u>s</u>ongs and music helps to <u>creat</u> a good atmosphere among people.</li>" +
+"Correct: <u>S</u>ongs and music helps to <u>create</u> a good atmosphere among people.</li></font> </ul></p>";
+
+descriptions['articles'] = "<font color=red><p> You must select individual words on this tab.</p></font>" + 
+"<p><b>Instructions:</b> Please correct article errors by clicking on a word and changing incorrect article, "  + 
+"adding missing article or deleting unnecessary article.</p> <ul> <li>an incorrect article is used:" +
+"<ul><font color=green><li>Incorrect: In Europe, the First World War started coming to <u>an</u> end after a huge destruction.</li> " + 
+"Correct: In Europe, the First World War started coming to <u>the</u> end after a huge destruction.</li></font></ul> " +
+//"<br><ul><font color=green><li>Incorrect: Blogs are considered as <u>the</u> direct way to participate in politics.</li>" +
+//"Correct: Blogs are considered as <u>a</u> direct way to participate in politics.</li></font></ul> " +
+
+"<br><li>an article is missing but it is required: <ul> <font color=green>" +
+"<li>Incorrect: Command line scripting: PHP script can run without server.</li> " +
+"Correct: Command line scripting: PHP script can run without <u>a</u> server.</li></font></ul> " +
+
+//"<li>There were no instances of NTR faltering in front of */the camera.</li>Ê
+//<li>Hardware errors are one type of errors in /the kernel.</li></i></font></ul>
+
+//<li>All *the warring nations commenced deliberations.</li>
+//<li>However, *the specific defects are not known.</li>
+"<br><li>an unnecessary article appears:<ul> " + 
+"<font color=green><li>Incorrect: They could not attain <u>a</u> victory.</li> " +
+"Correct: They could not attain victory.</li></font></ul></ul>";
+
 //<p><b>Quick review:</b> Indefinite articles <i>a</i> and <i>an</i> are used in front of nonspecific, singular count nouns <font color=green><i>a movie, a cat.</i></font> Definite article <i>the</i> is used in front of specific singular and plural nouns <font color=green><i>the movie, the cats</i></font>. Many uncountable nouns require no article at all <font color=green><i>honesty, news etc.
-descriptions['other_determiners'] = "<p><b>Instructions:</b> Please correct other determiners including <i>this/that, these/those, each/every, either/neither, some/any, much, many, few, little, several, most, enough etc.</i> if they used incorrectly by clicking on words and typing out a replacement.</p>"
+//descriptions['other_determiners'] = "<p><b>Instructions:</b> Please correct other determiners including <i>this/that, these/those, each/every, either/neither, some/any, much, many, few, little, several, most, enough etc.</i> if they used incorrectly by clicking on words and typing out a replacement.</p>";
+
+descriptions['det_noun'] = "<font color=red><p> You must select determiner and noun pairs on this tab.</p></font>" +
+"<p><b>Instructions:</b> Please correct determiners including <u>this/that, these/those, each/every, either/neither, some/any, much, many, few, little, " + 
+"several, most, enough</u> if they used incorrectly together with a specific noun by clicking on a pair of words and typing out a replacement.</p>";
+
 //<ul> <li>Demonstrative determiners: <ul> <li><i>this/that</i> is used with singular count nouns <font color=green><i>*these/this dog</i></font>, non-count nouns <font color=green><i>*these/that coffee;</font></i></li> <li><i>these/those</i> is used with plural count nouns <font color=green><i>*this/these dogs, *this/those people.</font></i></li> </ul>  <li>Distributive determiners: <ul> <li><i>each/every</i> is used with single count nouns <font color=green><i>*each bottles/each bottle, *every people/every person.</font></i></li> </ul>  <li>Disjunctive determiners: <ul> <li><i>either/neither</i> is used with singular count nouns <i><font color=green>either hat is fine.</font></i></li> </ul>  <li>Existential determiners: <ul> <li><i>some/any</i> is used with singular and plural count nouns, noncount nouns <font color=green><i>some car, any new houses.</i></font></li> </ul>  <li>Degree determiners: <ul> <li><i>much</i> is used with noncount nouns <font color=green><i>*many/much wine, *many/much furniture;</i></font></li> <li><i>enough</i> is used with plural count nouns <font color=green><i>enough troubles</i></font>, noncount nouns <font color=green><i>enough furniture.</i></font></li> </ul> </ul>"
-descriptions['noun_numbers'] = "<p><b>Instructions:</b> Please correct errors involving plural/singular confusion of a noun by clicking on words and typing out a replacement as shown in example sentence below: <ul><i><font color=green><li>In terms of population, India is one of the *worlds/world leaders.</li></font></i></ul></p>";
-descriptions['noun_of_noun'] = " <p><b>Instructions:</b> Please correct errors involving incorrect word order in noun phrases by clicking on words and typing out a replacement as shown in example sentences below: <ul> <font color=green><i><li>Similarly to other big *cities of India/India cities, Hyderabad Police has one IPS Officer.</li> <li>The largest financial *services companies/service companies in the world are in Japan.</li></i></font> </ul> </p>";
-descriptions['pronouns'] = "<p><b>Instructions:</b> Pronouns must agree in number with the noun (the antecedent) to which they refer <i>e.g., I - me/my, you - yours, he - him/his, she - her, we - our/us, they - their/them</i>. Please correct errors involving incorrect pronouns by clicking on words and typing out a replacement. <ul> <font color=green><i><li>America, Britain and Japan landed *its/their armies in Vladovostik.</li></i></font> </ul></p> ";
-descriptions['prepositions'] = "<p><b>Instructions:</b> Prepositions like <i>about, at, by, down, for, from, in, into, of, off, on, onto, out, over, to, up, upon, with, within,</i> etc. are difficult ESL writers. In this step you should correct any prepositions that are used incorrectly. <ul> <font color=green><i><li>This is fast */in speed, independent, reliable and diversified platform.</li> <li>*For it does not require any compilation.</li> <li>As a result of its support *for/in the war.</li> <li>He should add Vishakapatnam N.T.D code 0891 *for/to this phone number.</li> </i></font> </ul></p>";
-descriptions['sv_agreement'] = "<p><b>Instructions:</b> Every sentence must have subjects and verbs that agree in number. If the subject is singular, the verb must be singular. If the subject is plural, the verb must be plural as well. In this step you should correct any errors involving subject verb agreement. <ul> <font color=green><i><li>Australia *have/has participated in every Summer Olympics.</li> <li>Diabetes mellitus *are/is classified separately due to a known defect.</li></i></font> </ul></p> ";
-descriptions['tense'] = "<p><b>Instructions:</b> In every sentence verbs must reflect the correct tense. In this step you should correct errors involving incorrect tense usage by clicking on verbs and typing out a replacement.  <ul> <font color=green><i><li>All warring nations are commencing deliberations now.</li> <li>Since 2000, Australia *is/has been among the top five medal winner countries.</li> <li>By the end of 5th century their empire *collapsed/had collapsed.</li></i></font> </ul></p>"
-//<p><b>Quick review</b>  <ul> <li>Present Simple: S + V/Vs, Do/Does S + V? <font color=blue><i>Signal words: every day, usually, never, at first, then, after, in the morning, evening, often.</i></font></li> <li>Present Continuous: to be + Ving, are + we/you/they + Ving?, is + he/she/it + Ving? am + I + Ving? <font color=blue><i>now, at the moment.</i></font></li> <li>Present Perfect: S + have/has + Ved/3, Have + S + Ved/3? <font color=blue><i>twice, several times, lately, recently, yet, already, never, just, ever.</i></font></li> <li>Present Perfect Continuous: I/we/you/they + have been + Ving, He/she/it + has been + Ving <font color=blue><i>since, for.</i></font></li> <li>Past Simple: S + Ved/2, did + S + V1? <font color=blue><i>yesterday, last year/month/week.</i></font></li> <li>Past Continuous: S + was/were + Ving, was/were + S + Ving? <font color=blue><i>at, when, while, at 2 oclock.</i></font></li> <li>Past Perfect: S + had + Ved/3, had + S + Ved/3? <font color=blue><i>by, before.</i></font></li> <li>Past Perfect Continuous: S + had been + Ving.</li> <li>Future Simple: S+will+V, will +S+V? <font color=blue><i>tomorrow, next week, next month, often , every day, soon.</i></font></li> <li>Future Continuous: S + will be + Ving, will + S + be + Ving? <font color=blue><i>at, when, while, tomorrow.</i></font></li> <li>Future Perfect: S + will have + Ved/3, Will + S + have + Ved/3? <font color=blue><i>by, before, tomorrow.</i></font></li> <li>Future Perfect Continuous: S + will have been + Ving, He/she/it + has been + Ving.</li> </ul></p>";
-descriptions['verb_form_ig'] = "<p><b>Instructions:</b> In this step you should identify and correct wrong verb form error e.g., when an incorrect verb form is used <i>-ed</i> ending added to irregular verb, an incorrect verb form is used for the particular tense as shown in example below: <ul> <font color=green><i><li>They grew up together and *remain/remained friends forever.</li></i></font> </ul></p>  <p>There is a list of verbs that must be followed by infinitive or gerund. You should also correct infinitive/gerund confusion errors if an incorrect verb form is used as shown in examples below: <ul> <font color=green><i><li> They started *interfering/to interfere into disputes between local kings.</li> <li>Baiju Baavera's songs helped Rafi *establish/to establish himself as a mainstream singer.</li> <li>They have started *allowing/to allow Rafi *to sing/singing for them.</li> <li>India started *carving/to carve its own place in the world economy.</li></i></font> </ul></p> ";
-descriptions['word_form'] = "<p><b>Instructions:</b> You should correct errors when an incorrect form of the word is used e.g., noun form is used instead of adjectival form, noun form is used instead of verb form, adjectival form is used instead of adverbial form etc. <ul> <font color=green><i><li>An important *uses/usage of PHP.</li> <li>Narayini explanations in Bagavath Gita is very *help/helpful for people.</li></i></font> </ul></p> ";
-descriptions['adj'] = "<font color=red><b>Attention:</b><p> You must select phrases on this tab, but not individual words.</font> </p> <p><b>Instructions:</b> If you are using more than one adjective, they usually follow a specific order: 1) article, 2) judgment, 3) size, 4) shape, 5) age, 6) color, 7) nationality, and 8) material. You should correct errors involving order of adjectives by clicking on a phrase and typing adjectives in correct order.</p>";
-descriptions['missing'] = "<font color=red><b>Attention:</b><p> You must select phrases on this tab, but not individual words. </p> </font><p><b>Instructions:</b> If sentence lacks a subject, a verb, or both then it cannot stand alone as a sentence. In this step you should correct errors involving missing fragment in the sentence by clicking on a word which follows missing fragment and retyping it including missing fragment. <ul> <font color=green><i><li>*Very simple in use/It is very simple in use and very powerful. <li>*Was born/He was born in the city of Mecca on April 20th. <li>Blogs *are considered as a part of an open source politics.</li></i></font></ul></p>";
-descriptions['awk_phrases'] = "<font color=red><b>Attention:</b><p>  Do this tab if you have already corrected all other errors.</p> You must select phrases on this tab, not individual words. </p></font>  <p><b>Instructions:</b> In this step you should identify and replace an awkward word or a phrase with more appropriate English word/phrase. Also, you should delete a fragment if the sentence is two wordy or contains repetitive information. <ul> <font color=green><i><li>It does not *need/require any compilation.</li> <li>Japan sent *personnel/people in order to gain the further involvement.</li> <li>Britain and USA became suspicious *that/due to the fact that Japan could construct permanent bases there.</li></i></font></ul></p> ";
+//descriptions['noun_numbers'] = "<p><b>Instructions:</b> Please correct errors involving plural/singular confusion of a noun by clicking on words and typing out a replacement as shown in example sentence below: <ul><i><font color=green><li>In terms of population, India is one of the *worlds/world leaders.</li></font></i></ul></p>";
+
+descriptions['noun_of_noun'] = "<font color=red><p> You must select noun phrases on this tab or individual words. </p> </font>"+
+"<p><b>Instructions:</b> Please correct errors involving incorrect noun form (plural vs. singular) in noun phrases by clicking on a phrase and typing out a replacement."+
+"<ul> <font color=green><li>Incorrect: It has powers to arrange fair <u>election</u>.</li>Correct: It has powers to arrange fair <u>elections</u>.</li> </font></ul> </p>";
+
+descriptions['pronouns'] = "<font color=red><p> You must select individual words on this tab.</p></font>" + 
+"<p><b>Instructions:</b> Pronouns must agree in number with the noun to which they refer, for example, <u>I - me/my, you - yours, he - him/his, she - her, " + 
+"we - our/us, they - their/them</u>. Please correct errors involving incorrect pronouns by clicking on a word and typing out a replacement. <ul>"+
+"<font color=green><li>Incorrect: America, Britain and Japan landed <u>its</u> armies in Vladovostik.</li>"+
+"Correct: America, Britain and Japan landed <u>their</u> armies in Vladovostik.</li></font> </ul></p> ";
+
+descriptions['prepositions'] = "<font color=red><p> You must select individual words on this tab.</p></font>" + 
+"<p><b>Instructions:</b> Prepositions like <u>about, at, by, down, for, from, in, into, of, off, on, onto, out, over, "+
+"to, up, upon, with, within,</u> are difficult for ESL writers. Please correct all prepositions that are used incorrectly, "+
+"insert missing or delete unnecesary prepositions."+
+"<ul> <font color=green><li> Incorrect: He should add Vishakapatnam N.T.D code <u>for</u> this phone number.</li>" +
+"Correct: He should add Vishakapatnam N.T.D code <u>to</u> this phone number.</li></font> </ul></p>";
+//<li>This is fast *in speed, independent, reliable and diversified platform.</li>
+//<li>*For it does not require any compilation.</li>
+//<li>As a result of its support *for/in the war.</li>
+// <li>He should add Vishakapatnam N.T.D code 0891 *for/to this phone number.</li> </i></font> </ul></p>";
+
+descriptions['sv_agreement'] = "<font color=red><p>You must select subject and verb pairs on this tab.</p></font>" + 
+"<p><b>Instructions:</b> Every sentence must have subject and verb that agreed. " +
+"If the subject is singular, the verb must be singular. If the subject is plural, the verb must be plural as well. "+
+"Please correct any errors involving subject verb agreement by selecting an incorrect subject-verb pair and typing out a replacement." +
+"<ul><font color=green><li>Incorrect: Australia <u>have</u> participated in every Summer Olympics.</li>"+
+"Correct: Australia <u>has</u> participated in every Summer Olympics.</li></font> </ul></p>";
+//   <li>Diabetes mellitus *are/is classified separately due to a known defect.</li></i></font> </ul></p> ";
+   
+descriptions['tense'] = "<font color=red><p> You must select individual words on this tab.</p></font>" + 
+"<p><b>Instructions:</b> In every sentence verbs must reflect a correct tense. "+
+"Please correct errors involving incorrect tense usage by clicking on verbs and typing out a replacement."+
+"<ul> <font color=green><li> Incorrect: Since 2000, Australia <u>is</u> among the top five medal winner countries.</li>"+
+"Correct: Since 2000, Australia <u>has been</u> among the top five medal winner countries.</li></font> </ul></p>";
+
+//<li>All warring nations are commencing deliberations now.</li> 
+//<li>By the end of 5th century their empire *collapsed/had collapsed.</li></i></font> </ul></p>"
+    
+//<p><b>Quick review</b>  <ul> <li>Present Simple: S + V/Vs, Do/Does S + V? <font color=blue><i>Signal words: every day, usually, never, at first, then, after, in the morning, evening, often.</i></font></li> <li>Present Continuous: to be + Ving, are + we/you/they + Ving?, is + he/she/it + Ving? am + I + Ving? <font color=blue><i>now, at the moment.</i></font></li> <li>Present Perfect: S + have/has + Ved/3, Have + S + Ved/3? <font color=blue><i>twice, several times, lately, recently, yet, already, never, just, ever.</i></font></li> <li>Present Perfect Continuous: I/we/you/they + have been + Ving, He/she/it + has been + Ving <font color=blue><i>since, for.</i></font></li> <li>Past Simple: S + Ved/2, did + S + V1? <font color=blue><i>yesterday, last year/month/week.</i></font></li> <li>Past Continuous: S + was/were + Ving, was/were + S + Ving? <font color=blue><i>at, when, while, at 2 oclock.</i></font></li> <li>Past Perfect: S + had + Ved/3, had + S + Ved/3? <font color=blue><i>by, before.</i></font></li> <li>Past Perfect Continuous: S + had been + Ving.</li> <li>Future Simple: S+will+V, will +S+V? <font color=blue><i>tomorrow, next week, next month, often , every day, soon.</i></font></li> <li>Future Continuous: S + will be + Ving, will + S + be + Ving? <font color=blue><i>at, when, while, tomorrow.</i></font></li> <li>Future Perfect: S + will have + Ved/3, Will + S + have + Ved/3? <font color=blue><i>by, before, tomorrow.</i></font></li> <li>Future Perfect Continuous: S + will have been + Ving, He/she/it + has been + Ving.</li> </ul></p>"
+descriptions['verb_form_ig'] = "<font color=red><p> You must select individual words on this tab.</p></font>" +
+"<p><b>Instructions:</b> Please identify and correct verb form errors, for example, when "+
+"ending \"-ed\" added to irregular verb or an incorrect verb form is used for a particular tense."+
+"<ul> <font color=green><li>Incorrect: They grew up together and <u>remain</u> friends forever.</li>"+
+"Correct: They grew up together and <u>remained</u> friends forever.</li></font> </ul></p>" +
+
+"<p>There is a list of verbs that must be followed by infinitive or gerund. You should also correct infinitive/gerund confusion errors if an incorrect verb form is used. "+
+"<ul> <font color=green><li>Incorrect: They started <u>allowing</u> Rafi <u>to sing</u> for them.</li>"+
+"Correct: They started <u>to allow</u> Rafi <u>singing</u> for them.</li></font></ul></p>";
+
+//They started *interfering/to interfere into disputes between local kings.</li>
+//<li>Baiju Baavera's songs helped Rafi *establish/to establish himself as a mainstream singer.</li>
+// <li>They have started *allowing/to allow Rafi *to sing/singing for them.</li>
+// <li>India started *carving/to carve its own place in the world economy.</li></i></font> </ul></p> ";
+
+
+descriptions['word_form'] = "<font color=red><p> You must select individual words on this tab.</p></font>" +
+"<p><b>Instructions:</b> Please correct errors when an incorrect form of the word is used, for example, noun form is used instead of adjectival form, "+
+"noun form is used instead of verb form, adjectival form is used instead of adverbial form."+
+"<ul> <font color=green><li>Incorrect: Narayini explanations in Bagavath Gita is very <u>help</u> for people.</li>"+
+"Correct: Narayini explanations in Bagavath Gita is very <u>helpful</u> for people.</li></font></ul></p>";
+//<li>An important *uses/usage of PHP.</li>
+
+//descriptions['adj'] = "<font color=red><b>Attention:</b><p> You must select phrases on this tab, but not individual words.</font> </p> <p><b>Instructions:</b> If you are using more than one adjective, they usually follow a specific order: 1) article, 2) judgment, 3) size, 4) shape, 5) age, 6) color, 7) nationality, and 8) material. You should correct errors involving order of adjectives by clicking on a phrase and typing adjectives in correct order.</p>";
+//descriptions['missing'] = "<font color=red><b>Attention:</b><p> You must select phrases on this tab, but not individual words. </p> </font><p><b>Instructions:</b> If sentence lacks a subject, a verb, or both then it cannot stand alone as a sentence. In this step you should correct errors involving missing fragment in the sentence by clicking on a word which follows missing fragment and retyping it including missing fragment. <ul> <font color=green><i><li>*Very simple in use/It is very simple in use and very powerful. <li>*Was born/He was born in the city of Mecca on April 20th. <li>Blogs *are considered as a part of an open source politics.</li></i></font></ul></p>";
+
+descriptions['awk_phrases'] = "<font color=red><p>  Do this tab if you have already corrected all other errors.</p> "+
+"You must select phrases on this tab, not individual words. </p>"+
+"</font>  <p><b>Instructions:</b> In this step you should identify and replace an awkward word or a phrase with more appropriate English word/phrase. "+
+"Also, you may delete a fragment if the sentence is two wordy or contains repetitive information.";
+//"<ul> <font color=green><i>"+
+//" <li>Japan sent *personnel/people in order to gain the further involvement.</li>
+//<li>It does not *need/require any compilation.</li>
+//<li>Britain and USA became suspicious *that/due to the fact that Japan could construct permanent bases there.</li></i></font></ul></p> ";
 
 /**
  * Initializes the arrays that store the space-delimited words, 
@@ -536,9 +636,10 @@ function compileCorrections(step, i) {
 	
 //	var anonymizedFormElement = document.getElementById(step + '_anonymized_' + (i+1));
 //	anonymizedFormElement.value = sentence;
+
+	var changes =  '<p> _ ' + step + ' _ ' + sentences[i] + ' _ ' + sentence + ' </p>';
 		 
 	// collect the individual changes
-	var changes =  '<p> _ ' + step + ' _ ' + sentences[i] + ' _ ' + sentence + ' </p>';
 	for(var j = 0; j < words[i].length; j++) {
 		// this word / region has been changed
 		if(highlights[i][j]) {
@@ -546,38 +647,40 @@ function compileCorrections(step, i) {
 			var replacementText = word.innerText;
 			if(highlighting_mode == "word") {
 				//changes += 'word' + '@' + j + '@' + replacementText + '@' + '\n';
-				changes += '<p>' + words[i][j] + '_' + replacementText + '_'; 
+				changes += '<p>' + words[i][j] + '|' + replacementText + ' span ' + j + "-" + j; 				
 				//alert(spans[i][j]);
 			} else if(highlighting_mode == "pair") {
 				var other_word_index = spans[j];
 				if(j < other_word_index) {
 					var replacementText = document.getElementById(step + '_word_' + i + '_' + other_word_index);
-					var pair_indicies = j + ',' + other_word_index;
+					var pair_indicies = j + '-' + other_word_index;
 					//changes += 'pair' + '+++' + pair_indicies + '+++' + replacementText + ' ... ' + other_word.innerText + '+++' + '\n';
-					//changes += '<p>' + words[i][j] + '_' + replacementText + '_' + other_word.innerText;
-								}
+					//changes += '<p>' + words[i][j] + '|' + replacementText + '|' + pair_indicies;
+			}
 			} else if(highlighting_mode == "phrase") {
-				var span_end = spans[j];
-				//if(span_end > -1) {
+				var span_end = spans[i][j];
+				if(span_end > -1) {
 					var span = j + '-' + span_end;
 					//alert(span);
 					//changes += 'phrase' + '---' + span + '---' + replacementText + '---' + '\n';
-					changes += words[i][j] + '_' + replacementText;
-				//}
+					changes += '<p>'+ words[i][j] + '|' + replacementText + ' span ' + span;					
+				}
 			}
-		}
+		}		
 }
+
 
 	if(sentence != sentences[i]) {
 		// save the new sentence into the sentences array so that it gets used in the next step.
 		sentences[i] = sentence; 
-		  global_changes[j] += changes;
+		global_changes[j] += changes;
+		
 
 		//alert(changes);
 		//alert(jointArray(sentences));
 		var somediv = document.getElementById('someid');
         somediv.innerHTML = global_changes;
-	}	 	
+	}		 	
 }
 </script>
 
@@ -628,8 +731,8 @@ pronoun errors should be corrected by clicking on corresponding 'Pronouns' tab. 
  You can switch between tabs at any time. All errors that have been corrected on previous tabs are reflected on a current tab.</li>
 <li>You can make a correction by clicking on an incorrect word (or a phrase) and type the correct version of the word in the editbox that appears.
 If any word is missing, you should click on the word following the missing word and type two words into the editbox.
- If any word must be deleted (e.g., unnecessary article before a noun), you need to select a phrase Ð noun with preceding article
- and retype the noun without any article. 
+ If any word must be deleted (e.g., unnecessary article before a noun), you need to select a phrase - a noun words with preceding article
+ and retype this noun word without any article. 
 </ul>
 <p>Do not forget to correct errors ONLY on corresponding error tab! Good luck!</p>
             </td>
@@ -664,18 +767,9 @@ writeTabs();
 		current_step = step;
 		// update the HTML of the tab with the reinitialized sentences, etc. 
 		updateTab(step);
-		output();
-	}
+		}
     });
   });
-  
-  function output(){
-        var somediv = document.getElementById('someid');
-        //somediv.innerHTML = words[].join('___');
-       // somediv.innerHTML = changes;
-        
-        //<!--  -->somediv.innerHTML = highlights;
-  }
 
 
 var $tabs = $('#tabs').tabs();
@@ -693,22 +787,22 @@ var current_step = steps[selected];
 <p><input type="hidden" name="userDisplayLanguage" /> <input type="hidden" name="browserInfo" /> <input type="hidden" name="ipAddress" /> <input type="hidden" name="country" /> <input type="hidden" name="city" /> <input type="hidden" name="region" /></p>
 <script language="Javascript" src="http://gd.geobytes.com/gd?after=-1&variables=GeobytesCountry,GeobytesCity,GeobytesRegion,GeobytesIpAddress">
 </script><script language="Javascript">
-<!--
-function getUserInfo() {
-	var userDisplayLanguage = navigator.language ? navigator.language : navigator.userDisplayLanguage;
-	var browserInfo = navigator.userAgent;
-	var country = sGeobytesCountry;
-	var city = sGeobytesCity;
-	var region = sGeobytesRegion;
 
-	document.mturk_form.userDisplayLanguage.value = userDisplayLanguage;
-	document.mturk_form.browserInfo.value = browserInfo;
-	document.mturk_form.country.value = country;
-	document.mturk_form.city.value = city;
-	document.mturk_form.region.value = region;
-}
-
-getUserInfo();
-
+/*	<!--
+	function getUserInfo() {
+		var userDisplayLanguage = navigator.language ? navigator.language : navigator.userDisplayLanguage;
+		var browserInfo = navigator.userAgent;
+		var country = sGeobytesCountry;
+		var city = sGeobytesCity;
+		var region = sGeobytesRegion;
+	
+		document.mturk_form.userDisplayLanguage.value = userDisplayLanguage;
+		document.mturk_form.browserInfo.value = browserInfo;
+		document.mturk_form.country.value = country;
+		document.mturk_form.city.value = city;
+		document.mturk_form.region.value = region;
+	}
+	
+	getUserInfo();*/
 // -->
 </script> 
