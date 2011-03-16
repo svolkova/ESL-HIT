@@ -626,8 +626,7 @@ function compileCorrections(step, i) {
 		var word = document.getElementById(step + '_word_' + i + '_' + j);
 		if(word.style.display != "none") {
 			sentence += word.innerText + " ";
-			
-		}
+			}
 	}
 	// clean up extraneous spaces
 	sentence = sentence.replace(/^\s+/g, "");
@@ -638,13 +637,22 @@ function compileCorrections(step, i) {
 //	anonymizedFormElement.value = sentence;
 
 	var changes =  '<p> _ ' + step + ' _ ' + sentences[i] + ' _ ' + sentence + ' </p>';
+	
+	var somediv = document.getElementById('someid');
+        somediv.innerHTML = global_changes;
 		 
 	// collect the individual changes
 	for(var j = 0; j < words[i].length; j++) {
 		// this word / region has been changed
 		if(highlights[i][j]) {
 			var word = document.getElementById(step + '_word_' + i + '_' + j);
-			var replacementText = word.innerText;
+			var replacementText = word.innerText;//correct word
+			//alert(replacementText);
+			
+
+						
+						
+			
 			if(highlighting_mode == "word") {
 				//changes += 'word' + '@' + j + '@' + replacementText + '@' + '\n';
 				changes += '<p>' + words[i][j] + '|' + replacementText + ' span ' + j + "-" + j; 				
@@ -659,11 +667,20 @@ function compileCorrections(step, i) {
 			}
 			} else if(highlighting_mode == "phrase") {
 				var span_end = spans[i][j];
+				//alert(span_end);
+				var phrase = "";
+				for (var k = j; k <= span_end; k++){
+						phrase += words[i][k] + " ";
+						//alert(phrase);
+						}	
+						
 				if(span_end > -1) {
-					var span = j + '-' + span_end;
+					var span = j + '-' + span_end;	
+					
+							
 					//alert(span);
-					//changes += 'phrase' + '---' + span + '---' + replacementText + '---' + '\n';
-					changes += '<p>'+ words[i][j] + '|' + replacementText + ' span ' + span;					
+					//changes += 'phrase' + '---' + span + '---' + replacementText + '---' + '\n';			
+					changes += '<p> '+ phrase + '|' + replacementText + ' span ' + span;					
 				}
 			}
 		}		
@@ -678,8 +695,6 @@ function compileCorrections(step, i) {
 
 		//alert(changes);
 		//alert(jointArray(sentences));
-		var somediv = document.getElementById('someid');
-        somediv.innerHTML = global_changes;
 	}		 	
 }
 </script>
@@ -777,8 +792,11 @@ var selected = $tabs.tabs('option', 'selected');
 var highlighting_mode = highlighting_modes[steps[selected]];
 var current_step = steps[selected];
 
+//<input type = "hidden" name = "someid"/>
 
 </script>
+
+
 
 <div id="someid"></div>
 
