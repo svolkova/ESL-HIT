@@ -18,7 +18,7 @@ A:hover {text-decoration: none; color: black;}
   
 
 <script type="text/Javascript">
-//var sentences = ["${sentence_1}", "${sentence_2}", "${sentence_3}", "${sentence_4}", "${sentence_5}", "${sentence_6}", "${sentence_7}", "${sentence_8}", "${sentence_9}", "${sentence_10}"]; 
+var sentences = ["${sentence_1}", "${sentence_2}", "${sentence_3}", "${sentence_4}", "${sentence_5}", "${sentence_6}", "${sentence_7}", "${sentence_8}", "${sentence_9}", "${sentence_10}"]; 
 
 /*var sentences = [ 
 	"Sri Lanka 's forest region was destroyed by agriculture , wooden works , vetinary feeds , etc . ,",    
@@ -31,12 +31,12 @@ A:hover {text-decoration: none; color: black;}
 	"Among the bird species , 233 live in Srilanka , in that 26 belong to intra state .", 
 	"Others live in the Indian sub continent , however more than 80 of them have special features that are unique to Sri Lanka .",
 	 "Some of the breeds based on their feather formation characteristics largely differ from the Indian breeds ."
-];*/ 
+]; 
 var sentences = [
 "One two three",
 "four five six",
 "seven eight"
-];
+];*/
 
 
 var words = [ [], [], [], [], [], [], [], [] ,[] ,[]];
@@ -637,12 +637,9 @@ function compileCorrections(step, i) {
 //	anonymizedFormElement.value = sentence;
 
 	var changes =  '<p> _ ' + step + ' _ ' + sentences[i] + ' _ ' + sentence + ' </p>';
-	
-	var somediv = document.getElementById('someid');
-        somediv.innerHTML = global_changes;
 		 
 	// collect the individual changes
-	for(var j = 0; j < words[i].length; j++) {
+	for(var j = 0; j < words[i].length+1; j++) {
 		// this word / region has been changed
 		if(highlights[i][j]) {
 			var word = document.getElementById(step + '_word_' + i + '_' + j);
@@ -692,6 +689,9 @@ function compileCorrections(step, i) {
 		sentences[i] = sentence; 
 		global_changes[j] += changes;
 		
+		var somediv = document.getElementById('someid');
+        somediv.innerHTML = global_changes;
+		
 
 		//alert(changes);
 		//alert(jointArray(sentences));
@@ -714,9 +714,8 @@ Sentences annotated with common ESL errors may be shared with researches who are
 <ul>
 <li>Noun Related Errors
 <ul>
-<li>Article error</li>
-<li>Other determiners error</li>
-<li>Noun number error</li>
+<li>Determiner error</li>
+<li>Noun determiner agreement error</li>
 <li>Noun of noun error</li>
 <li>Pronoun error
 </ul>
@@ -729,10 +728,8 @@ Sentences annotated with common ESL errors may be shared with researches who are
 </ul>
 <li>Other Errors
 <ul>
-<li>Spelling / Capitalization error</li>
+<li>Spelling / Punctuation error</li>
 <li>Word form error</li>
-<li>Adjective related error</li>
-<li>Sentence fragment error</li>
 <li>Awkward phrase in English error</li>
 </ul>
 </ul>
@@ -740,15 +737,14 @@ Sentences annotated with common ESL errors may be shared with researches who are
  Please follow instructions carefully. General instructions are described below.
   Additionally, more specific instructions related to the correction of specific error types will be provided on every tab.</p>
 <ul>
-<li> Each type of error must be corrected on a corresponding tab e.g., spelling and capitalization errors should be corrected by clicking on 'Spelling/Capitalization' tab,
-pronoun errors should be corrected by clicking on corresponding 'Pronouns' tab. </li>
-<li>The order in which correction can be done is not restricted e.g., you can first correct adjective related errors and then article errors.
+<li> Each type of error must be corrected on a corresponding tab <i>e.g.,</i> spelling errors must be corrected by clicking on 'Spelling/Punctuation' tab,
+pronoun errors must be corrected by clicking on corresponding 'Pronoun' tab. </li>
+<li>The order in which correction can be done is not restricted <i>e.g.,</i> you can first correct pronoun related errors and then determiner errors.
  You can switch between tabs at any time. All errors that have been corrected on previous tabs are reflected on a current tab.</li>
-<li>You can make a correction by clicking on an incorrect word (or a phrase) and type the correct version of the word in the editbox that appears.
+<li>You can make a correction by clicking on an incorrect word (or a phrase, or a pair of words) and type the correct version of the word/phrase/pair of words in the editbox that appears.
 If any word is missing, you should click on the word following the missing word and type two words into the editbox.
- If any word must be deleted (e.g., unnecessary article before a noun), you need to select a phrase - a noun words with preceding article
- and retype this noun word without any article. 
-</ul>
+If any word should be deleted (<i>e.g.,</i>, unnecessary determiner before a noun), you need to select noun phrase - the noun itself and preceding determiner
+ and retype this noun word without any determiner.</ul>
 <p>Do not forget to correct errors ONLY on corresponding error tab! Good luck!</p>
             </td>
             <td bgcolor="#d3d3d3"><font size="-1"><center><u><b>Informed Consent Form</b></u></center>
@@ -792,13 +788,11 @@ var selected = $tabs.tabs('option', 'selected');
 var highlighting_mode = highlighting_modes[steps[selected]];
 var current_step = steps[selected];
 
-//<input type = "hidden" name = "someid"/>
+//<div id="someid"></div>
 
 </script>
 
-
-
-<div id="someid"></div>
+<input type = "hidden" name = "someid"/>
 
 <p>Thanks for doing our HIT! Please provide any comments that you have about this HIT. We appreciate your input!</p>
 <p><textarea rows="4" cols="80" name="comment"> </textarea>&nbsp;</p>
