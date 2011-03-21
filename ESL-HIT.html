@@ -9,8 +9,9 @@ A:link {text-decoration: none; color: black;}
 A:visited {text-decoration: none; color: black;}
 A:active {text-decoration: none; color: black;}
 A:hover {text-decoration: none; color: black;}
-//-->
+-->
 </style>
+
 
 <link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
@@ -18,7 +19,11 @@ A:hover {text-decoration: none; color: black;}
   
 
 <script type="text/Javascript">
-var sentences = ["${sentence_1}", "${sentence_2}", "${sentence_3}", "${sentence_4}", "${sentence_5}", "${sentence_6}", "${sentence_7}", "${sentence_8}", "${sentence_9}", "${sentence_10}"]; 
+//sansserif{font-family:Arial,Helvetica,sans-serif;}
+//p {font-size:75%;}
+
+//var sentences = ["${sentence_1}", "${sentence_2}", "${sentence_3}", "${sentence_4}", "${sentence_5}", "${sentence_6}", "${sentence_7}", "${sentence_8}", "${sentence_9}", "${sentence_10}"]; 
+var sentences = ["${sentence_1}", "${sentence_2}", "${sentence_3}", "${sentence_4}", "${sentence_5}"]; 
 
 /*var sentences = [ 
 	"Sri Lanka 's forest region was destroyed by agriculture , wooden works , vetinary feeds , etc . ,",    
@@ -31,7 +36,7 @@ var sentences = ["${sentence_1}", "${sentence_2}", "${sentence_3}", "${sentence_
 	"Among the bird species , 233 live in Srilanka , in that 26 belong to intra state .", 
 	"Others live in the Indian sub continent , however more than 80 of them have special features that are unique to Sri Lanka .",
 	 "Some of the breeds based on their feather formation characteristics largely differ from the Indian breeds ."
-]; 
+];
 var sentences = [
 "One two three",
 "four five six",
@@ -39,14 +44,14 @@ var sentences = [
 ];*/
 
 
-var words = [ [], [], [], [], [], [], [], [] ,[] ,[]];
-var highlights = [ [], [], [], [], [], [], [], [] ,[] ,[]];
-var tmp_highlights = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
-var num_highlights = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-var previously_clicked_word = [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1];
-var spans = [ [], [], [], [], [], [], [], [] ,[] ,[] ];
+var words = [ [], [], [], [], []];
+var highlights = [ [], [], [], [], []];
+var tmp_highlights = [ [], [], [], [], []];
+var num_highlights = [0, 0, 0, 0, 0];
+var previously_clicked_word = [-1, -1, -1, -1, -1];
+var spans = [ [], [], [], [], []];
 var just_clicked = [];
-var global_changes = [];
+var global_changes = [[], [], [], [], []];
 
 var steps = [ 'spelling', 'articles', 
 //'other_determiners', 'noun_numbers',
@@ -56,22 +61,22 @@ var steps = [ 'spelling', 'articles',
 'awk_phrases'];
 
 var tab_names = new Array();
-tab_names['spelling'] = 'Spelling / Punctuation';//+
-tab_names['articles'] = 'Determiner';//+
-tab_names['det_noun'] = 'Noun Agreement';
+tab_names['spelling'] = '<p> <font size = 2>Spelling</p></font>';//+
+tab_names['articles'] = '<p><font size = 2>Article</p></font>';//+
+tab_names['det_noun'] = '<p><font size = 2>NounAgr</p></font>';
 //tab_names['other_determiners'] = 'Other Determiners';
 //tab_names['noun_numbers'] = 'Noun Numbers';//agreement between noun and determiner
-tab_names['noun_of_noun'] = 'Noun';//+
-tab_names['pronouns'] = 'Pronoun';//+
-tab_names['prepositions'] = 'Preposition';//+T
+tab_names['noun_of_noun'] = '<p><font size = 2>Noun</p></font>';//+
+tab_names['pronouns'] = '<p><font size = 2>Pronoun</p></font>';//+
+tab_names['prepositions'] = '<p><font size = 2>Prepos</p></font>';//+T
 //tab_names['adj'] = 'Adjective';
 //tab_names['adj'] = 'Adverb';
-tab_names['sv_agreement'] = 'Verb Agreement';
-tab_names['tense'] = 'Tense';
-tab_names['verb_form_ig'] = 'Verb Form';
-tab_names['word_form'] = 'Word Form';//adjective vs. adverb confussion
+tab_names['sv_agreement'] = '<p><font size = 2>VerbAgr</p></font>';
+tab_names['tense'] = '<p><font size = 2>Tense</p></font>';
+tab_names['verb_form_ig'] = '<p><font size = 2>VerbForm</p></font>';
+tab_names['word_form'] = '<p><font size = 2>WordForm</p></font>';//adjective vs. adverb confussion
 //tab_names['missing'] = 'Missing Fragment';//if subject or verb is missing then it should be corrected at agreement tab
-tab_names['awk_phrases'] = 'Awkward Phrases';
+tab_names['awk_phrases'] = '<p><font size = 2>AwkPhrase</p></font>';
  
 var highlighting_modes = new Array();
 highlighting_modes['spelling'] = 'word';
@@ -94,7 +99,7 @@ var descriptions = new Array();
 descriptions['spelling'] = "<font color=red><p> You must select individual words on this tab.</p></font>" +
 "<p><b>Instructions:</b> Please correct spelling errors, punctuation errors and incorrect case conventions by clicking on a word and typing out a replacement." +
 "<ul><font color=green><li>Incorrect: <u>s</u>ongs and music helps to <u>creat</u> a good atmosphere among people.</li>" +
-"Correct: <u>S</u>ongs and music helps to <u>create</u> a good atmosphere among people.</li></font> </ul></p>";
+"Correct: <u>S</u>ongs and music helps to <u>create</u> a good atmosphere among people.</li></font> </ul>";
 
 descriptions['articles'] = "<font color=red><p> You must select individual words on this tab.</p></font>" + 
 "<p><b>Instructions:</b> Please correct article errors by clicking on a word and changing incorrect article, "  + 
@@ -193,7 +198,7 @@ descriptions['word_form'] = "<font color=red><p> You must select individual word
 //descriptions['missing'] = "<font color=red><b>Attention:</b><p> You must select phrases on this tab, but not individual words. </p> </font><p><b>Instructions:</b> If sentence lacks a subject, a verb, or both then it cannot stand alone as a sentence. In this step you should correct errors involving missing fragment in the sentence by clicking on a word which follows missing fragment and retyping it including missing fragment. <ul> <font color=green><i><li>*Very simple in use/It is very simple in use and very powerful. <li>*Was born/He was born in the city of Mecca on April 20th. <li>Blogs *are considered as a part of an open source politics.</li></i></font></ul></p>";
 
 descriptions['awk_phrases'] = "<font color=red><p>  Do this tab if you have already corrected all other errors.</p> "+
-"You must select phrases on this tab, not individual words. </p>"+
+"<p>You must select phrases on this tab, not individual words. </p>"+
 "</font>  <p><b>Instructions:</b> In this step you should identify and replace an awkward word or a phrase with more appropriate English word/phrase. "+
 "Also, you may delete a fragment if the sentence is two wordy or contains repetitive information.";
 //"<ul> <font color=green><i>"+
@@ -217,7 +222,7 @@ function initalizeArrays() {
 		spans[i] = initalizeArray(words[i].length, -1);
 		previously_clicked_word[i] = -1;
 		just_clicked[i] = false;
-		global_changes[i] = 0;
+		//global_changes[i] = 0;
 	}
 }
 
@@ -283,6 +288,11 @@ function writeTab(step) {
 		tab_text += writeCorrectionsTable(step, i);
 		tab_text += '</p>';
 	}
+	
+	
+	//tab_text += writeGlobalChanges();
+	
+	
 	// ccb - pane with changes...
 	//tab_text += '</td><td >';
 	//tab_text += 'changes here';
@@ -290,6 +300,12 @@ function writeTab(step) {
 	return tab_text;
 }
 
+function writeGlobalChanges(){
+	var text = '';
+	//text += '<input type="hidden" name="' + global_changes + '" />';
+	//text += global_changes;
+	return text;
+}
 
 /**
  * Hide the corrections table.
@@ -302,6 +318,8 @@ function hideCorrectionsTable(step) {
 		}
 	}
 }
+
+
 
 /** 
  * Writes sentence i to the HTML document and wraps 
@@ -347,6 +365,8 @@ function writeCorrectionsTable(step, i) {
 	text += '</table>';
 	text += '<input type="hidden" name="' + step + '_highlight_mask_' + (i+1) + '" id="' + step + '_highlight_mask_' + (i+1) + '" />';
 	text += '<input type="hidden" name="' + step + '_num_highlights_' + (i+1) + '" id="' + step + '_num_highlights_' + (i+1) + '" />';
+	text += '<input type="hidden" name="' + step + '_results_' + (i+1) + '" id="' + step + '_results_' + (i+1) + '" />';
+	
 	return text;
 }
 
@@ -621,13 +641,18 @@ function getMaxHighlightableWord(i, j, k) {
  */
 function compileCorrections(step, i) {
 	// reconstruct the new sentence from the corrections
+	
+	
 	var sentence = "";
 	for(var j = 0; j < words[i].length; j++) {
 		var word = document.getElementById(step + '_word_' + i + '_' + j);
 		if(word.style.display != "none") {
 			sentence += word.innerText + " ";
-			}
+		}
 	}
+	
+	//alert(sentence[i]);
+	
 	// clean up extraneous spaces
 	sentence = sentence.replace(/^\s+/g, "");
 	sentence = sentence.replace(/\s+$/g, "");
@@ -636,23 +661,23 @@ function compileCorrections(step, i) {
 //	var anonymizedFormElement = document.getElementById(step + '_anonymized_' + (i+1));
 //	anonymizedFormElement.value = sentence;
 
-	var changes =  '<p> _ ' + step + ' _ ' + sentences[i] + ' _ ' + sentence + ' </p>';
-		 
+	var initialSentence = sentences[i];	
+	var changes = '['+ step + ']' + ' \t ' + initialSentence + '|' + sentence + ' \t ';
+	//alert(initialSentence);
+		
+	
 	// collect the individual changes
 	for(var j = 0; j < words[i].length+1; j++) {
 		// this word / region has been changed
 		if(highlights[i][j]) {
-			var word = document.getElementById(step + '_word_' + i + '_' + j);
+		
+		var word = document.getElementById(step + '_word_' + i + '_' + j);
 			var replacementText = word.innerText;//correct word
 			//alert(replacementText);
-			
-
-						
-						
-			
+		
 			if(highlighting_mode == "word") {
 				//changes += 'word' + '@' + j + '@' + replacementText + '@' + '\n';
-				changes += '<p>' + words[i][j] + '|' + replacementText + ' span ' + j + "-" + j; 				
+				changes += '('+ words[i][j] + '|' + replacementText + ' span ' + j + "-" + j + ')' + ' \t '; 				
 				//alert(spans[i][j]);
 			} else if(highlighting_mode == "pair") {
 				var other_word_index = spans[j];
@@ -661,7 +686,7 @@ function compileCorrections(step, i) {
 					var pair_indicies = j + '-' + other_word_index;
 					//changes += 'pair' + '+++' + pair_indicies + '+++' + replacementText + ' ... ' + other_word.innerText + '+++' + '\n';
 					//changes += '<p>' + words[i][j] + '|' + replacementText + '|' + pair_indicies;
-			}
+				}					
 			} else if(highlighting_mode == "phrase") {
 				var span_end = spans[i][j];
 				//alert(span_end);
@@ -672,41 +697,49 @@ function compileCorrections(step, i) {
 						}	
 						
 				if(span_end > -1) {
-					var span = j + '-' + span_end;	
-					
-							
+					var span = j + '-' + span_end;							
 					//alert(span);
 					//changes += 'phrase' + '---' + span + '---' + replacementText + '---' + '\n';			
-					changes += '<p> '+ phrase + '|' + replacementText + ' span ' + span;					
-				}
+					changes += '(' + phrase + '|' + replacementText + ' span ' + span + ')' + ' \t ';
+				}					
 			}
-		}		
-}
+		
+		}
+	}	
+	
 
-
-	if(sentence != sentences[i]) {
+	if(sentences[i].trim() != sentence.trim()) {
 		// save the new sentence into the sentences array so that it gets used in the next step.
 		sentences[i] = sentence; 
-		global_changes[j] += changes;
+		global_changes[i] += changes;		
+				
+		//var resultsdiv = document.getElementById('results');
+		//resultsdiv.value = global_changes; 
+		//resultsdiv.innerHTML = global_changes;
 		
-		var somediv = document.getElementById('someid');
-        somediv.innerHTML = global_changes;
-		
-
+				
+		//var resultsdiv = document.getElementById('results');
+        // resultsdiv.innerHTML = global_changes;  
 		//alert(changes);
-		//alert(jointArray(sentences));
-	}		 	
+		
+		document.getElementById(step + '_results_' + (i+1)).value = changes;
+		//alert(document.getElementById(step + '_results_' + (i+1)).value);
+		
+		
+	}
+	
+		
 }
 </script>
 
 <table>
     <tbody>
-                <h1>Correcting Errors in Sentences Written by Non-native Speakers of English</h1>
+               <font face = Arial><h2>Correcting Errors in Sentences Written by Non-native Speakers of English</h2></font>
         <tr>
-            <td width="75%">
-        <p>Sentences written by non-native speakers of English may contain different types of errors.
+            <td width="80%">
+        <font face = Arial size = 2 align="justify"><p>Sentences written by non-native speakers of English may contain different types of errors.
         The goal of this HIT is to correct errors in sentences produced by non-native English speakers in order to establish better quality data and give
-a feedback to non-native speakers of English. </p> <!--  -->
+a feedback to non-native speakers of English. </p> 
   <p> The process of correcting different types of errors in this data involves annotation of common English as Second Language (ESL) errors.
 Sentences annotated with common ESL errors may be shared with researches who are working on 
   second language acquisition and automated spelling correction.</p>
@@ -714,41 +747,42 @@ Sentences annotated with common ESL errors may be shared with researches who are
 <ul>
 <li>Noun Related Errors
 <ul>
-<li>Determiner error</li>
-<li>Noun determiner agreement error</li>
-<li>Noun of noun error</li>
-<li>Pronoun error
+<li>Determiner errors</li>
+<li>Noun determiner agreement errors</li>
+<li>Noun phrase errors</li>
+<li>Pronoun errors
 </ul>
 <li>Proposition Related Errors
 <li>Verb Related Errors
 <ul>
-<li>Subject verb agreement error</li>
-<li>Tense error</li>
-<li>Verb form error</li>
+<li>Subject verb agreement errors</li>
+<li>Tense errors</li>
+<li>Verb form errors</li>
 </ul>
 <li>Other Errors
 <ul>
-<li>Spelling / Punctuation error</li>
-<li>Word form error</li>
-<li>Awkward phrase in English error</li>
+<li>Spelling / Punctuation errors</li>
+<li>Word form errors</li>
+<li>Awkward phrase errors</li>
 </ul>
 </ul>
- <p><b>Instructions:</b> This hit is a multistep process.
+ <p><b>Instructions:</b> This hit is a multistep process. Each tab corresponds to a specific error types.
+ You need to correct all error types for every sentence if there are any. 
  Please follow instructions carefully. General instructions are described below.
-  Additionally, more specific instructions related to the correction of specific error types will be provided on every tab.</p>
+ Additionally, more specific instructions related to the correction of specific error types will be provided on every tab.</p>
 <ul>
-<li> Each type of error must be corrected on a corresponding tab <i>e.g.,</i> spelling errors must be corrected by clicking on 'Spelling/Punctuation' tab,
-pronoun errors must be corrected by clicking on corresponding 'Pronoun' tab. </li>
-<li>The order in which correction can be done is not restricted <i>e.g.,</i> you can first correct pronoun related errors and then determiner errors.
+<li> Each type of error must be corrected on a corresponding tab, for example, spelling errors must be corrected by clicking on "Spelling" tab,
+pronoun errors must be corrected by clicking on corresponding "Pronoun" tab. </li>
+<li>The order in which correction can be done is not restricted, for example, you can first correct pronoun related errors and then determiner errors for every sentence
+or you can correct all types of errors for the first sentence, then fo the second sentence and so on.
  You can switch between tabs at any time. All errors that have been corrected on previous tabs are reflected on a current tab.</li>
 <li>You can make a correction by clicking on an incorrect word (or a phrase, or a pair of words) and type the correct version of the word/phrase/pair of words in the editbox that appears.
 If any word is missing, you should click on the word following the missing word and type two words into the editbox.
-If any word should be deleted (<i>e.g.,</i>, unnecessary determiner before a noun), you need to select noun phrase - the noun itself and preceding determiner
- and retype this noun word without any determiner.</ul>
-<p>Do not forget to correct errors ONLY on corresponding error tab! Good luck!</p>
+If any word should be deleted, for example, unnecessary determiner before a noun, you need to select this determiner and type "_" instead.</ul>
+<p>Do not forget to correct errors ONLY on corresponding error tab! Good luck!</p><font>
             </td>
-            <td bgcolor="#d3d3d3"><font size="-1"><center><u><b>Informed Consent Form</b></u></center>
-            <p><b>Purpose of research study:</b> We are correcting different types of errors in sentences produced by non-native speakers of English.
+            <td bgcolor="#d3d3d3"><font size = "-0.1" face = Arial align="justify"><center><u><b>Informed Consent Form</b></u></center></font>
+            <font size = "-0.7" face = Arial align="justify"><p><b>Purpose of research study:</b> We are correcting different types of errors in sentences produced by non-native speakers of English.
              Because these sentences are annotated with common ESL errors they may be shared with researches who are working on second
              language acquisition and automated spelling correction.</p>
             <p><b>Benefits:</b> Although it will not directly benefit you, this study may benefit society by helping to develop technology that allows better responses to future humanitarian crises.</p>
@@ -770,8 +804,9 @@ writeTabs();
     $("#tabs").tabs({
 	select: function(e, ui) {
 		for(var i = 0; i < sentences.length; i++) {
-			compileCorrections(current_step, i);
+			compileCorrections(current_step, i);		
 		}
+		
 		initalizeArrays();
 		var step = ui.panel.id;
 		highlighting_mode = highlighting_modes[step];
@@ -781,26 +816,27 @@ writeTabs();
 		}
     });
   });
-
-
+ 
 var $tabs = $('#tabs').tabs();
 var selected = $tabs.tabs('option', 'selected');
 var highlighting_mode = highlighting_modes[steps[selected]];
 var current_step = steps[selected];
-
-//<div id="someid"></div>
-
+	
 </script>
 
-<input type = "hidden" name = "someid"/>
 
-<p>Thanks for doing our HIT! Please provide any comments that you have about this HIT. We appreciate your input!</p>
+
+<p><font face = Arial size = 2>Thanks for doing our HIT! Please provide any comments that you have about this HIT. We appreciate your input!</font></p>
 <p><textarea rows="4" cols="80" name="comment"> </textarea>&nbsp;</p>
+
 <p><input type="hidden" name="userDisplayLanguage" /> <input type="hidden" name="browserInfo" /> <input type="hidden" name="ipAddress" /> <input type="hidden" name="country" /> <input type="hidden" name="city" /> <input type="hidden" name="region" /></p>
 <script language="Javascript" src="http://gd.geobytes.com/gd?after=-1&variables=GeobytesCountry,GeobytesCity,GeobytesRegion,GeobytesIpAddress">
 </script><script language="Javascript">
 
-/*	<!--
+//<input type = "hidden" name = "results"/>
+//<div id="results"></div>
+
+	//<!--
 	function getUserInfo() {
 		var userDisplayLanguage = navigator.language ? navigator.language : navigator.userDisplayLanguage;
 		var browserInfo = navigator.userAgent;
@@ -815,6 +851,6 @@ var current_step = steps[selected];
 		document.mturk_form.region.value = region;
 	}
 	
-	getUserInfo();*/
+	getUserInfo();
 // -->
 </script> 
