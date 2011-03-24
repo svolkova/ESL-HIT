@@ -88,7 +88,7 @@ public class Converter {
 
 	
 	public void printToFile(String fileName) throws FileNotFoundException {
-		File file = new File(fileName + n + ".cvs");
+		File file = new File(fileName + n + ".csv");
 		PrintStream printStream = new PrintStream(new FileOutputStream(file));
 		System.setOut(printStream);
 		
